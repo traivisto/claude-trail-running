@@ -1,0 +1,24 @@
+# Personal athlete data — never commit these
+athlete-profile.md
+race-card.md
+race-day-guide.md
+training-program.md
+current-plan.md
+events-log.md
+memory.md
+activity-cache.csv
+training-dashboard.html
+
+# Runtime / generated files
+oura-today.json
+telegram-last-update.txt
+__pycache__/
+*.pyc
+
+# Credentials — kept in ~/mcps/ but gitignore as safety net
+oura.env
+telegram-trail-coach.json
+*.env
+
+# Archives and personal history
+arkisto/

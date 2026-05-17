@@ -1,0 +1,4 @@
+# Python dependencies for trail-running-coach workspace
+# Install with: pip install -r requirements.txt
+
+requests  # used by oura-fetch.py (only needed if using Oura Ring)

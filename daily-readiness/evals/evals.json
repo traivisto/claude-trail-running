@@ -1,0 +1,93 @@
+{
+  "skill_name": "daily-readiness",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "How am I today? Should I do a hard trail session this afternoon or take it easy?",
+      "expected_output": "A readiness card with 🟢/🟡/🔴 verdict, sleep/HRV/Body Battery metrics, recent training load summary (last 7 days), last hard session, and a specific recommendation for whether a hard trail session is appropriate today.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has_readiness_emoji",
+          "text": "Output contains a readiness verdict with one of 🟢, 🟡, or 🔴"
+        },
+        {
+          "id": "mentions_body_battery",
+          "text": "Output mentions Body Battery with a numeric value"
+        },
+        {
+          "id": "mentions_hrv",
+          "text": "Output mentions HRV with a numeric value and compares it to a baseline"
+        },
+        {
+          "id": "mentions_recent_load",
+          "text": "Output references training load from the last 7 days (session count and/or distance)"
+        },
+        {
+          "id": "answers_the_question",
+          "text": "Output directly answers whether to do a hard session or take it easy today — not hedged to the point of being useless"
+        },
+        {
+          "id": "concise_output",
+          "text": "Output is under 500 words (the skill targets 200-300 words; without-skill tends to be 3-5x longer)"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Quick readiness check before I head out for a run.",
+      "expected_output": "A concise readiness card covering overnight recovery signals and recent load, with a clear go/caution/no-go recommendation for running today.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has_readiness_emoji",
+          "text": "Output contains a readiness verdict with one of 🟢, 🟡, or 🔴"
+        },
+        {
+          "id": "mentions_body_battery",
+          "text": "Output mentions Body Battery with a numeric value"
+        },
+        {
+          "id": "mentions_resting_hr",
+          "text": "Output mentions resting heart rate (RHR) with a numeric value"
+        },
+        {
+          "id": "clear_go_nogo",
+          "text": "Output gives a clear go or caution recommendation — not a wishy-washy non-answer"
+        },
+        {
+          "id": "concise_output",
+          "text": "Output is under 500 words — a quick check should be quick to read"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I've been feeling a bit flat the last few days. What does my data say about my current condition?",
+      "expected_output": "A readiness assessment that specifically addresses possible fatigue or accumulated load — checks HRV trend, Body Battery, consecutive training days, and recent load — and gives a coaching interpretation of whether 'flat' is reflected in the numbers or might be something else.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "has_readiness_emoji",
+          "text": "Output contains a readiness verdict with one of 🟢, 🟡, or 🔴"
+        },
+        {
+          "id": "addresses_subjective_feeling",
+          "text": "Output specifically addresses the athlete's subjective feeling of being 'flat' and relates it to the objective data — either validating or contrasting"
+        },
+        {
+          "id": "checks_cumulative_load",
+          "text": "Output checks recent training load (last 7 or 14 days) to assess whether accumulated fatigue is a plausible explanation"
+        },
+        {
+          "id": "mentions_hrv",
+          "text": "Output mentions HRV and compares it to a baseline or trend"
+        },
+        {
+          "id": "gives_coaching_interpretation",
+          "text": "Output gives a coaching-level interpretation — not just raw numbers, but what they mean for how to train today"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "skill_name": "garmin-activity-tagger",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Tag my most recent trail run",
+      "expected_output": "A classification card with Purpose, Modality (Trail running), and Time-of-day tag. Purpose should reflect distance/duration/elevation relative to Tommi's thresholds. Hill modifier should appear if elevation > 40 m/km.",
+      "files": [],
+      "expectations": [
+        "Output contains a PURPOSE field",
+        "Output contains a MODALITY field with 'Trail running'",
+        "Output contains a TIME field (Morning/Daytime/Evening/Night)",
+        "Output includes a 'Why' explanation referencing at least one concrete data point (distance, duration, elevation, or HR zones)",
+        "Hill modifier is correctly applied or omitted based on elevation per km calculation (threshold 40 m/km)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Classify my most recent swimming session",
+      "expected_output": "Classification card with Modality = Swimming, Purpose = Cross-training (or Recovery if short/easy), Time-of-day derived from start time.",
+      "files": [],
+      "expectations": [
+        "Output contains a PURPOSE field",
+        "Output contains a MODALITY field with 'Swimming'",
+        "Output contains a TIME field",
+        "Purpose is Cross-training or Recovery (not Aerobic base or Interval unless HR/label strongly indicates otherwise)",
+        "No Hill modifier applied (swimming has no elevation)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "What kind of session was my longest run in February 2026?",
+      "expected_output": "Should find the ~21km Vega de San Mateo trail run from Feb 19. Classification should be Very long / Race sim (duration 3h45m exceeds 3h threshold), Modality = Trail running, with Hill modifier (62.7 m/km exceeds 40 m/km threshold). Time = Morning or Daytime based on 11:06 start.",
+      "files": [],
+      "expectations": [
+        "Correctly identifies the February 2026 longest run (approximately 21 km)",
+        "PURPOSE is Long effort or Very long / Race sim (duration 3h45m is the key signal)",
+        "MODALITY is Trail running",
+        "TIME is Morning or Daytime (activity started around 11:00)",
+        "Output includes distance and elevation figures from the actual activity data"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Tag my Helsinki trail run from November 23, 2025",
+      "expected_output": "Helsinki Polkujuoksu from Nov 23 2025. 7.22km, 526m elevation gain, 72.9 m/km. Aerobic base (62min under 90min threshold, 7.2km under 15km). Hill modifier fires (72.9 > 40 m/km). Technical terrain should NOT fire: actual pace ~11.1 min/km is fully explained by the elevation (expected ~11.1 min/km with 6.75 baseline + 72.9 x 0.06 penalty), ratio ~1.00. Morning session (start 09:52).",
+      "files": [],
+      "expectations": [
+        "PURPOSE is Aerobic base (distance 7.2 km and duration ~80 min are both below Long effort thresholds)",
+        "Hill modifier is applied (elevation 72.9 m/km exceeds 40 m/km threshold)",
+        "Technical terrain modifier is NOT applied (pace is fully explained by the elevation gain — ratio close to 1.0)",
+        "MODALITY is Trail running",
+        "TIME is Daytime (activity started at 09:52, which is in the 09:00-16:59 Daytime window)"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Tag my Helsinki trail run from January 10, 2026",
+      "expected_output": "Helsinki Polkujuoksu from Jan 10 2026. 10.9km, 256m, 23.5 m/km, duration 114 min. Long effort (duration > 90 min). Hill modifier does NOT fire (23.5 < 40 m/km). Technical terrain: must use Long effort baseline (7.5 min/km), expected = 7.5 + (23.5 x 0.06) = 8.91 min/km, actual ~10.5 min/km, ratio ~1.18 — below 1.25 threshold, so technical terrain does NOT fire. A naive model using Aerobic base baseline (6.75) would incorrectly flag this as technical (ratio 1.28). Evening session (start 15:17).",
+      "files": [],
+      "expectations": [
+        "PURPOSE is Long effort (duration 114 min exceeds 90 min threshold)",
+        "Hill modifier is NOT applied (elevation 23.5 m/km is below 40 m/km threshold)",
+        "Technical terrain modifier is NOT applied (correct Long effort baseline of 7.5 min/km gives ratio ~1.18, below the 1.25 threshold)",
+        "TIME is Daytime (activity started at 15:17, which is in the 09:00-16:59 Daytime window)",
+        "Why section references the pace calculation showing elevation-adjusted expected pace"
+      ]
+    }
+  ]
+}
