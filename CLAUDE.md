@@ -10,11 +10,11 @@ Each skill lives in its own subfolder as `skill-name/SKILL.md`. Before starting 
 
 | File | Use when |
 |------|----------|
-| `daily-readiness/SKILL.md` | User asks about today's condition, readiness to train, how recovered they are ("miltä näyttää päivän kunto", "pitäisikö levätä", "mitä tänään?") |
+| `daily-readiness/SKILL.md` | User asks about today's condition, readiness to train, how recovered they are ("how am I today?", "should I rest?", "what should I do today?") |
 | `activity-cache-updater/SKILL.md` | Cache needs syncing with latest Garmin data (also triggered automatically by other skills) |
 | `coach-monthly-summary/SKILL.md` | User asks for a monthly training summary or multi-month comparison |
 | `garmin-activity-tagger/SKILL.md` | Classifying or tagging a specific activity by type/purpose |
-| `program-health-check/SKILL.md` | User asks if training is on track, program audit, phase progress ("ohjelman tilanne", "ollaanko raiteilla") |
+| `program-health-check/SKILL.md` | User asks if training is on track, program audit, phase progress ("is my program on track?", "program status") |
 | `quick-lookup/SKILL.md` | Factual data lookups from local files — km last week, race start time, cutoffs, drop bag contents, phase dates |
 | `training-plan/SKILL.md` | Creating or updating a training plan, pushing workouts to Garmin |
 | `garmin-mcp/SKILL.md` | **Reference only** — read before making Garmin MCP calls. Maps use cases to tools, documents response shapes, lists known quirks. Not a workflow skill. |

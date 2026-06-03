@@ -1,6 +1,6 @@
 ---
 name: training-plan
-description: "Creates a structured training plan for the athlete's trail running coaching, saves it as a draft for review, and — after explicit approval — pushes workouts to Garmin Connect calendar. Use this skill whenever the user asks for a training plan, program, or schedule. Trigger phrases include: tee ohjelma, suunnittele ensi viikko, tee 2 viikon ohjelma, laita treenit kalenteriin, mitä treenaan tällä viikolla, make a training plan, plan my week. Also use when the user wants to adjust or replace an existing plan, or asks to push a draft plan to Garmin."
+description: "Creates a structured training plan for the athlete's trail running coaching, saves it as a draft for review, and — after explicit approval — pushes workouts to Garmin Connect calendar. Use this skill whenever the user asks for a training plan, program, or schedule. Trigger phrases include: make a training plan, plan my week, plan the next 2 weeks, put workouts on the calendar, what should I train this week. Finnish triggers: tee ohjelma, suunnittele ensi viikko, tee 2 viikon ohjelma, laita treenit kalenteriin, mitä treenaan tällä viikolla. Also use when the user wants to adjust or replace an existing plan, or asks to push a draft plan to Garmin."
 ---
 
 # Training Plan Skill
@@ -23,7 +23,7 @@ Use the containing directory as **WORKSPACE**. Read `WORKSPACE/athlete-profile.m
 - **WORKSPACE/activity-cache.csv** — classified activity history. Read last 14 days for load context.
 - **WORKSPACE/events-log.md** — illness, travel, disruptions. Explains anomalies the watch can't.
 - **WORKSPACE/athlete-profile.md** — HR zones, biometrics. Already loaded in Step 0.
-- **WORKSPACE/current-plan.md** — aktiivinen treenisuunnitelma (rullaava, ylikirjoitetaan aina uuden suunnitelman luonnissa).
+- **WORKSPACE/current-plan.md** — active training plan (rolling, always overwritten when a new plan is created).
 
 ---
 
@@ -31,16 +31,16 @@ Use the containing directory as **WORKSPACE**. Read `WORKSPACE/athlete-profile.m
 
 If the user has not specified how long the plan should cover, ask before doing anything else:
 
-> "Mille ajalle haluat ohjelman? (esim. 5 päivää, 1 viikko, 2 viikkoa)"
+> "How long should the plan cover? (e.g. 5 days, 1 week, 2 weeks)"
 
 Do not guess or assume a default duration. A plan without a defined end date is incomplete.
 
-### Resolving "ensi viikko" / "next week" ambiguity
+### Resolving "next week" ambiguity
 
-When the user says "next week", "ensi viikko", or similar, determine today's weekday before proceeding:
+When the user says "next week" or similar, determine today's weekday before proceeding:
 
-- **If today is Monday:** "ensi viikko" is ambiguous — could mean the rest of this calendar week (Tue–Sun) OR the next full calendar week (Mon–Sun, starting in 6 days). Always confirm:
-  > "Tarkoitatko tätä viikkoa (ti [D.M.]–su [D.M.]) vai ensi viikon maanantaista alkavaa viikkoa ([D.M.]–[D.M.])?"
+- **If today is Monday:** "next week" is ambiguous — could mean the rest of this calendar week (Tue–Sun) OR the next full calendar week (Mon–Sun, starting in 6 days). Always confirm:
+  > "Do you mean this week (Tue [D.M.]–Sun [D.M.]) or next week starting Monday ([D.M.]–[D.M.])?"
   Fill in the actual dates before asking.
 
 - **Any other weekday:** "next week" = next calendar Mon–Sun. No clarification needed — proceed.
@@ -58,7 +58,7 @@ Read `WORKSPACE/current-plan.md` if it exists. Check:
 **If an Approved plan overlaps with the requested dates:**
 Flag it and confirm with the user before proceeding:
 
-> "Sinulla on aktiivinen suunnitelma [pvm–pvm], jossa on Garmin-harjoituksia päiville [X, Y, Z]. Korvaanko ne uudella ohjelmalla?"
+> "You have an active plan [dates] with Garmin workouts on [X, Y, Z]. Replace them with the new plan?"
 
 If the user confirms, proceed — Step 6a will automatically clean up the old [Coach] workouts from Garmin before scheduling new ones.
 
@@ -77,7 +77,7 @@ Read these in parallel **using the Read tool, not bash** (see CLAUDE.md File rea
 Also fetch live readiness data if available (these can fail silently):
 - `mcp__garmin__get_body_battery` (today)
 - `mcp__garmin__get_morning_training_readiness` (today)
-- `mcp__oura__oura_readiness` parametrilla `{"date": "YYYY-MM-DD"}` (tänään)
+- `mcp__oura__oura_readiness` with `{"date": "YYYY-MM-DD"}` (today)
 
 If Garmin/Oura is unavailable, proceed with cache data only — note it briefly in the plan context line.
 
@@ -124,7 +124,7 @@ Use this structure:
 ```
 # Training Plan: [start date full] – [end date full]
 
-**Status:** Draft — ei viety Garminiin
+**Status:** Draft — not yet pushed to Garmin
 **Created:** [today's date] · **Phase:** [current phase name]
 **Context:** [1–2 sentences: why this plan looks the way it does — post-illness, build week, etc.]
 
@@ -133,16 +133,16 @@ Use this structure:
 ## [Weekday DD.M.] — [Session label]
 [What to do: duration, HR zone (with bpm values), terrain notes, any coaching cue]
 
-## [Weekday DD.M.] — Lepo / Uinti / Voimaharjoittelu
+## [Weekday DD.M.] — Rest / Swimming / Strength
 [Brief note on what/why]
 
 [...one section per day...]
 
 ---
 
-**Juoksuvolyymi yhteensä:** ~X km
-**Voimasessiot:** X kpl
-**Pisin sessio:** X min
+**Total running volume:** ~X km
+**Strength sessions:** X
+**Longest session:** X min
 ```
 
 ---
@@ -151,16 +151,16 @@ Use this structure:
 
 Show the plan and explicitly wait for approval. Say something like:
 
-> "Tässä on suunnitelmasi [dates]. Katso läpi — haluatko muuttaa jotain, vai viedäänkö tämä Garminiin?"
+> "Here is your plan [dates]. Review it — any changes, or shall I push it to Garmin?"
 
-**For each quality session in the plan** (mäkitoistot, intervallit, tempo, kynnys), include a short Garmin-rakenteen esikatselu directly below the session description. Format:
+**For each quality session in the plan** (hill repeats, intervals, tempo, threshold), include a short Garmin structure preview directly below the session description. Format:
 
 ```
-📋 Garmin-rakenne:
-  • Lämmittely — lap-näppäin
-  • × [N]: [X] min [zone] ([bpm]–[bpm] bpm) — aikaan sidottu
-  • Palautus — lap-näppäin
-  • Jäähdyttely — lap-näppäin
+📋 Garmin structure:
+  • Warmup — lap button
+  • × [N]: [X] min [zone] ([bpm]–[bpm] bpm) — time-based
+  • Recovery — lap button
+  • Cooldown — lap button
 ```
 
 For simple aerobic runs, no preview is needed — the structure is straightforward (warmup / main / cooldown, all time-based).
@@ -220,9 +220,9 @@ Example mapping (replace with athlete's actual values):
 
 ### Workout naming
 Always prefix with `[Coach]`. Examples:
-- `[Coach] Perusta-juoksu 50 min Z1`
-- `[Coach] Aerobinen pohja 80 min Z1-Z2`
-- `[Coach] Polkujuoksu 75 min Z1-Z2`
+- `[Coach] Easy run 50 min Z1`
+- `[Coach] Aerobic base 80 min Z1-Z2`
+- `[Coach] Trail run 75 min Z1-Z2`
 - `[Coach] Tempo 45 min Z4`
 
 ### Sport type
@@ -234,7 +234,7 @@ Immediately call `schedule_workout` with the workout ID and the correct date.
 
 ### Strength training workouts
 Strength sessions are planned sessions and belong in the Garmin calendar. Create a simple workout:
-- Name: `[Coach] Voimaharjoittelu 30 min`
+- Name: `[Coach] Strength training 30 min`
 - Sport: `sportTypeId: 5, sportTypeKey: "strength_training"`
 - Structure: one step, 30 minutes, no HR target (`workoutTargetTypeId: 1`)
 - Schedule to the correct date
@@ -249,7 +249,7 @@ Rest days, swimming, walking. These are spontaneous or extra activities — note
 After all Garmin workouts are scheduled, update `current-plan.md` status line:
 
 ```
-**Status:** Approved — viety Garminiin [today's date]
+**Status:** Approved — pushed to Garmin [today's date]
 ```
 
 If the plan represents a meaningful milestone (first week back, new long-run distance, phase transition), also update the **Current Position** section in `training-program.md`.

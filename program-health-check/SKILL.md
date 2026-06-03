@@ -6,13 +6,15 @@ description: >
   volume trend, long-run progression, strength frequency, hill/technical
   exposure, night sessions, key milestones, and time to race. Reads
   training-program.md, race-card.md, activity-cache.csv, athlete-profile.md,
-  and events-log.md. Finnish triggers: "ohjelman tilanne", "tarkista ohjelman
-  tilanne", "ollaanko raiteilla", "miten ohjelma etenee", "ohjelmakatselmus",
-  "valmistautumisen tila". English: "is my program on track", "weeks to
-  race", "program status", "program audit". Do NOT confuse with
+  and events-log.md. Triggers: "is my program on track", "weeks to race",
+  "program status", "program audit", "how is the program progressing",
+  "training status check", "race preparation status". Finnish triggers:
+  "ohjelman tilanne", "tarkista ohjelman tilanne", "ollaanko raiteilla",
+  "miten ohjelma etenee", "ohjelmakatselmus", "valmistautumisen tila".
+  Do NOT confuse with
   daily-readiness — this audits the strategic program across weeks, not
-  today's physical condition ("päivän kunto"). Use also when training-plan
-  crosses a phase boundary or follows an extended disruption.
+  today's physical condition. Use also when training-plan crosses a phase
+  boundary or follows an extended disruption.
 ---
 
 # Program Health Check

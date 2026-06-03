@@ -9,8 +9,10 @@ description: >
   what kind of session makes sense, how recovered they are, or what their current condition
   is. Triggers include: "how am I today?", "am I ready to train?", "what should I do
   today?", "how recovered am I?", "show me my readiness", "should I do a hard session?",
-  "how tired am I?", "what's my training status?", "daily check-in", "miltä näyttää
-  päivän kunto". Prefer this skill over raw Garmin or Oura tool calls whenever the goal
+  "how tired am I?", "what's my training status?", "daily check-in". Finnish
+  triggers: "miltä näyttää päivän kunto", "pitäisikö levätä", "mitä tänään?",
+  "miten olen palautunut", "olenko valmis treenaamaan". Prefer this skill
+  over raw Garmin or Oura tool calls whenever the goal
   is a coaching-oriented readiness assessment rather than raw data lookup.
 ---
 
@@ -36,47 +38,47 @@ Use the containing directory as **WORKSPACE**. All file references below are rel
 
 ---
 
-## Step 0: Tarkista datan tuoreus ja kysy tarvittaessa
+## Step 0: Check data freshness before fetching
 
-Tee ensin nopea tuoreustarkistus **ennen kuin haet mitään dataa**. Näin käyttäjä voi synkata laitteet ensin jos data puuttuu.
+Run a quick freshness check **before fetching any data** so the user can sync devices first if data is missing.
 
 ### 0a: Oura
-Kutsu `mcp__oura__oura_daily_summary` parametrilla `{"date": "YYYY-MM-DD"}` (tänään).
-- Palauttaa datan → Oura OK
-- Palauttaa virheen tai tyhjän → **Oura-data puuttuu** (rengas ei ole synkroitu)
+Call `mcp__oura__oura_daily_summary` with `{"date": "YYYY-MM-DD"}` (today).
+- Returns data → Oura OK
+- Returns error or empty → **Oura data missing** (ring not synced)
 
-### 0b: Garmin live-data
-Kutsu `mcp__garmin__get_sleep_summary` parametrilla `{"date": "YYYY-MM-DD"}` (tänään). Tämä on kevyt kutsu (~350 B) jolla nähdään onko Garmin synkroitu.
-- Palauttaa datan → Garmin OK
-- Palauttaa tyhjän tai virheen → **Garmin-data puuttuu** (kello ei ole synkroitu)
+### 0b: Garmin live data
+Call `mcp__garmin__get_sleep_summary` with `{"date": "YYYY-MM-DD"}` (today). Lightweight call (~350 B) to check if Garmin is synced.
+- Returns data → Garmin OK
+- Returns empty or error → **Garmin data missing** (watch not synced)
 
 ### 0c: Activity cache
-Read `WORKSPACE/activity-cache.csv` (vain häntä, `offset` lähelle tiedoston loppua, `limit: 20`). Tarkista viimeisin `date`.
-- Viimeisin date ≥ eilen → cache OK
-- Viimeisin date < eilen → **cache vanhentunut** (viimeisin: [pvm])
+Read `WORKSPACE/activity-cache.csv` (tail only, `offset` near end-of-file, `limit: 20`). Check the most recent `date`.
+- Most recent date ≥ yesterday → cache OK
+- Most recent date < yesterday → **cache stale** (last: [date])
 
-### 0d: Päätöslogiikka
+### 0d: Decision logic
 
-**Jos kaikki kolme OK:** jatka suoraan Step 1:een ilman kysymystä.
+**If all three OK:** continue directly to Step 1 with no prompt.
 
-**Jos jokin puuttuu tai on vanhentunut:** kerro käyttäjälle mitä puuttuu ja kysy miten jatketaan. Esimerkki:
+**If any is missing or stale:** tell the user what is missing and ask how to proceed. Example:
 
-> Ennen readiness-analyysiä huomasin:
-> - **Oura**: ei dataa tältä päivältä — rengas ei ole synkroitu
-> - **Garmin**: ei synkroitu
-> - **Activity cache**: ajan tasalla ✓
+> Before the readiness analysis, I noticed:
+> - **Oura**: no data for today — ring not synced
+> - **Garmin**: not synced
+> - **Activity cache**: up to date ✓
 >
-> Haluatko synkata ensin (sulje Cowork, synkkaa, palaa takaisin) vai jatkaa nyt olemassa olevalla datalla?
+> Do you want to sync first (close Cowork, sync, come back) or continue now with available data?
 
-Odota käyttäjän vastaus ennen kuin jatkat.
-- "Synkataan ensin" → odota, käyttäjä palaa ja aloittaa uudelleen
-- "Jatketaan nyt" / "jatka" → siirry Step 1:een, merkitse readiness-korttiin mitkä tiedot puuttuivat
+Wait for the user's response before continuing.
+- "Sync first" → wait, user returns and restarts
+- "Continue now" / "go ahead" → proceed to Step 1, note which data was missing in the readiness card
 
 ---
 
 ## Step 1: Fetch all data in parallel
 
-> 📖 **Garmin-työkalujen parametrit, vastausrakenteet ja quirkit:** lue `garmin-mcp/SKILL.md`. Erityisesti: käytä `get_sleep_summary` (ei `get_sleep_data`), ja `activity_id` on aina number-tyyppi.
+> 📖 **Garmin tool parameters, response shapes, and quirks:** read `garmin-mcp/SKILL.md`. Key points: use `get_sleep_summary` (not `get_sleep_data`), and `activity_id` is always a number type.
 
 Call these tools simultaneously, and also read both local files:
 

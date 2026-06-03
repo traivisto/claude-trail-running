@@ -220,7 +220,7 @@ If classification is genuinely ambiguous, note both candidates and explain which
 
 - **Garmin TEMPO label on a long session:** Override with Very long / Race sim if duration > 2 h. A 4-hour "tempo" is not a tempo session — Garmin mislabels sustained hard mountain efforts.
 - **Skiing and swimming:** Default to Cross-training; apply purpose label upgrade if label = TEMPO etc.
-- **Multi-sport:** Apply purpose logic to dominant running segment; note modality as Multi-sport.
+- **Multi-sport:** Apply purpose logic to dominant segment (longest by duration); note modality as Multi-sport. For the **Hill modifier**, use the dominant segment's elevation and distance (from `get_activity_splits`), not the overall totals — cycling legs dilute elev_per_km and can cause the flag to be missed. Example: a hiking drill with 529 m / 10 km = 52.9 m/km qualifies as Hill even if the full multisport activity shows only 32.9 m/km overall.
 - **Missing elevation data:** Skip Hill modifier entirely — never infer.
 - **Very short activities (< 20 min):** Lean toward Recovery or Strength unless HR/label says otherwise.
 - **Technical terrain on road runs:** Valid — wet cobblestones, muddy paths, icy roads all slow pace. Note the likely cause if inferrable.
