@@ -4,10 +4,12 @@ description: >
   Generates a compact training summary for a given month from the local activity cache,
   without calling the Garmin API. Use when the user asks "how was my training in January?",
   "summarize February", "coach summary for March", "how did I train last month?", or
-  "compare my last 3 months". Finnish triggers: "miten tammikuu meni?", "analysoi
-  helmikuu", "kuukausiyhteenveto", "miten olen treenannut tässä kuussa?", "miten
-  toukokuu on mennyt?", "treenien yhteenveto", "kuinka paljon juoksin viime kuussa?",
-  "montako tuntia treenattiin maaliskuussa?", "vertaa viime kolmea kuukautta".
+  "compare my last 3 months", "how did January go?", "analyse February",
+  "monthly summary", "how have I been training this month?", "training summary",
+  "how many km did I run last month?", "how many hours did I train in March?".
+  Finnish triggers: "miten tammikuu meni?", "analysoi helmikuu",
+  "kuukausiyhteenveto", "miten olen treenannut tässä kuussa?",
+  "kuinka paljon juoksin viime kuussa?", "vertaa viime kolmea kuukautta".
   Also use when building multi-month analysis — each monthly summary is ~1 KB, so
   6–12 months combine easily into one context window. Prefer this skill over the
   garmin-monthly-summary skill when the activity cache is available, as it avoids
