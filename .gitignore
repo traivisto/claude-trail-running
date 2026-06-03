@@ -22,3 +22,7 @@ telegram-trail-coach.json
 
 # Archives and personal history
 arkisto/
+
+# setup-template/ contains blank starter files — include them despite the rules above
+!setup-template/
+!setup-template/**

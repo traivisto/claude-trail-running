@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[YOUR NAME] — Training Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1117; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
+  h2 { font-size: 11px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #1e1e1e; flex-wrap: wrap; }
+  .toolbar .title { font-size: 15px; font-weight: 700; color: #fff; margin-right: 6px; }
+  .toolbar .sub { font-size: 11px; color: #555; }
+  .toolbar .spacer { flex: 1; }
+  .btn-group { display: flex; border: 1px solid #333; border-radius: 6px; overflow: hidden; }
+  .btn-group button {
+    background: none; border: none; color: #888; padding: 5px 11px;
+    font-size: 11px; cursor: pointer; border-right: 1px solid #333; transition: all 0.15s;
+  }
+  .btn-group button:last-child { border-right: none; }
+  .btn-group button.active { background: #2a2a2a; color: #fff; }
+  .btn-group button:hover:not(.active) { background: #1a1a1a; color: #ccc; }
+  .divider { width: 1px; height: 20px; background: #2a2a2a; }
+
+  /* ── STATS ROW ── */
+  .stats { display: flex; border-bottom: 1px solid #1e1e1e; flex-wrap: wrap; }
+  .stat { padding: 10px 18px; border-right: 1px solid #1e1e1e; }
+  .stat .val { font-size: 20px; font-weight: 700; color: #fff; }
+  .stat .lbl { font-size: 10px; color: #555; margin-top: 1px; }
+
+  /* ── SECTIONS ── */
+  .section { padding: 14px 20px; border-bottom: 1px solid #1a1a1a; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #1a1a1a; }
+  .row2 .section { border-bottom: none; border-right: 1px solid #1a1a1a; }
+  .row2 .section:last-child { border-right: none; }
+  .row3 { display: grid; grid-template-columns: 2fr 1fr; border-bottom: 1px solid #1a1a1a; }
+  .row3 .section { border-bottom: none; border-right: 1px solid #1a1a1a; }
+  .row3 .section:last-child { border-right: none; }
+
+  /* ── CALENDAR ── */
+  .cal-outer { overflow-x: auto; padding-bottom: 4px; }
+  .cal-inner { display: inline-flex; align-items: flex-start; gap: 0; }
+  .dow-col { display: flex; flex-direction: column; gap: 3px; padding-top: 16px; margin-right: 5px; }
+  .dow-lbl { width: 14px; height: 11px; font-size: 9px; color: #444; line-height: 11px; text-align: right; }
+  .cal-grid { display: inline-flex; gap: 3px; }
+  .cal-week-wrap { display: flex; flex-direction: column; }
+  .cal-month-lbl { height: 14px; font-size: 10px; color: #555; line-height: 14px; text-align: left; padding-left: 1px; white-space: nowrap; }
+  .cal-week { display: flex; flex-direction: column; gap: 3px; }
+  .cal-day { width: 11px; height: 11px; border-radius: 2px; cursor: default; position: relative; }
+  .cal-day[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: #2a2a2a; color: #eee; padding: 3px 7px; border-radius: 4px;
+    font-size: 11px; white-space: nowrap; z-index: 99; pointer-events: none;
+    border: 1px solid #444;
+  }
+  .cal-legend { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 10px; color: #555; }
+  .cal-legend .box { width: 11px; height: 11px; border-radius: 2px; }
+
+  footer { padding: 10px 20px; color: #2a2a2a; font-size: 11px; }
+
+  /* ── ACTIVITY TABLE ── */
+  .act-table-wrap { overflow-x: auto; }
+  table.act { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.act th { color: #555; font-weight: 600; text-align: left; padding: 5px 10px; border-bottom: 1px solid #222; white-space: nowrap; cursor: pointer; user-select: none; }
+  table.act th:hover { color: #aaa; }
+  table.act td { padding: 5px 10px; border-bottom: 1px solid #181818; white-space: nowrap; color: #ccc; }
+  table.act tr:hover td { background: #161616; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .mod-badge { background: #222; color: #888; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  table.act .num { text-align: right; color: #999; }
+  table.act .dim { color: #555; }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="title">[YOUR NAME]</span>
+  <span class="sub">[Race name · Race date]</span>
+  <div class="spacer"></div>
+
+  <!-- Unit toggle -->
+  <div class="btn-group" id="unitBtns">
+    <button class="active" onclick="setUnit('km')">km</button>
+    <button onclick="setUnit('hrs')">hours</button>
+    <button onclick="setUnit('elev')">vertical</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Time window -->
+  <div class="btn-group" id="windowBtns">
+    <button onclick="setWindow('3m')">3 mo</button>
+    <button onclick="setWindow('6m')">6 mo</button>
+    <button onclick="setWindow('12m')">12 mo</button>
+    <button class="active" onclick="setWindow('all')">All</button>
+  </div>
+
+  <span class="sub" id="windowLabel" style="color:#555;min-width:110px;text-align:right"></span>
+</div>
+
+<!-- STATS -->
+<div class="stats" id="statsRow">
+  <div class="stat"><div class="val" id="s-sessions">—</div><div class="lbl">Sessions</div></div>
+  <div class="stat"><div class="val" id="s-km">—</div><div class="lbl">km</div></div>
+  <div class="stat"><div class="val" id="s-hrs">—</div><div class="lbl">Hours</div></div>
+  <div class="stat"><div class="val" id="s-elev">—</div><div class="lbl">Elevation (m)</div></div>
+  <div class="stat"><div class="val" id="s-wkavg">—</div><div class="lbl" id="s-wkavg-lbl">Avg / week</div></div>
+  <div class="stat"><div class="val" style="color:#e53935">🔴 25/100</div><div class="lbl">Readiness · Strained</div></div>
+</div>
+
+<!-- CALENDAR -->
+<div class="section">
+  <h2>Training calendar — daily km</h2>
+  <div class="cal-outer"><div class="cal-inner">
+    <div class="dow-col">
+      <div class="dow-lbl"></div>
+      <div class="dow-lbl">M</div><div class="dow-lbl"></div>
+      <div class="dow-lbl">W</div><div class="dow-lbl"></div>
+      <div class="dow-lbl">F</div><div class="dow-lbl"></div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div></div>
+  <div class="cal-legend">
+    <span>Less</span>
+    <div class="box" style="background:#1e1e1e"></div>
+    <div class="box" style="background:#1a3d1a"></div>
+    <div class="box" style="background:#2d6a2d"></div>
+    <div class="box" style="background:#4caf50"></div>
+    <div class="box" style="background:#81c784"></div>
+    <span>More km</span>
+    <span style="margin-left:10px">·</span>
+    <div class="box" style="background:#673AB7;margin-left:8px"></div>
+    <span>≥ 35 km day</span>
+    <span style="margin-left:10px">·</span>
+    <div class="box" style="background:#fff;outline:2px solid #fff;margin-left:8px"></div>
+    <span>Today</span>
+  </div>
+</div>
+
+<!-- WEEKLY + ROLLING -->
+<div class="row2">
+  <div class="section">
+    <h2 id="weeklyTitle">Weekly volume (km)</h2>
+    <div style="position:relative;height:155px"><canvas id="weeklyChart"></canvas></div>
+  </div>
+  <div class="section">
+    <h2 id="rollingTitle">Rolling 28-day load (km)</h2>
+    <div style="position:relative;height:155px"><canvas id="rollingChart"></canvas></div>
+  </div>
+</div>
+
+<!-- PURPOSE MIX + MODALITY -->
+<div class="row3">
+  <div class="section">
+    <h2 id="purposeTitle">Monthly purpose mix (km)</h2>
+    <div style="position:relative;height:195px"><canvas id="purposeChart"></canvas></div>
+  </div>
+  <div class="section">
+    <h2 id="modTitle">All-time by sport</h2>
+    <div style="position:relative;height:195px"><canvas id="modalityChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ACTIVITY TABLE -->
+<div class="section">
+  <h2 id="tableTitle">All activities</h2>
+  <div class="act-table-wrap">
+    <table class="act" id="actTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('date')">Date ↕</th>
+          <th onclick="sortTable('name')">Activity ↕</th>
+          <th onclick="sortTable('mod')">Type ↕</th>
+          <th onclick="sortTable('purpose')">Purpose ↕</th>
+          <th onclick="sortTable('km')" style="text-align:right">km ↕</th>
+          <th onclick="sortTable('dur')" style="text-align:right">Duration ↕</th>
+          <th onclick="sortTable('elev')" style="text-align:right">Elev m ↕</th>
+        </tr>
+      </thead>
+      <tbody id="actTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>No data yet · Run update-dashboard.py after building your activity cache</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════
+
+// Per-session raw (for stats)
+const rawSessions = [];
+
+// Pre-aggregated weekly arrays
+const wkDates   = [];
+const wkDisplay = [];
+const wkKm  = [];
+const wkHrs = [];
+const wkElev= [];
+const rollDates  = [];
+const rollLabels = [];
+const rollKm  = [];
+const rollHrs = [];
+const rollElev= [];
+const monthKeys    = [];
+const monthDisplay = [];
+const purposeDsKm = [];
+const purposeDsHrs = [];
+const purposeDsElev = [];
+// Merged modality
+const modData = {
+  labels: [],
+  km:   [],
+  hrs:  [],
+  elev: [],
+  colors: []
+};
+
+const calData = [];
+const allActivities = [];
+const TODAY = '2026-05-15';
+
+// ── UI state ────────────────────────────────────────────────────────────────
+let unit   = 'km';   // 'km' | 'hrs' | 'elev'
+let timeWin = 'all'; // 'all' | '3m' | '6m' | '12m'
+
+function cutoffDate(win) {
+  const t = new Date(TODAY);
+  // Snap to first of month so N-month window = exactly N monthly bars
+  if (win === '3m')  { t.setMonth(t.getMonth() - 2); t.setDate(1); return t.toISOString().slice(0,10); }
+  if (win === '6m')  { t.setMonth(t.getMonth() - 5); t.setDate(1); return t.toISOString().slice(0,10); }
+  if (win === '12m') { t.setMonth(t.getMonth() - 11); t.setDate(1); return t.toISOString().slice(0,10); }
+  return '2025-01-01';
+}
+
+// ══════════════════════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════════════════════
+function kmColor(km) {
+  if (km <= 0) return '#1a1a1a';
+  if (km < 8)  return '#1a3d1a';
+  if (km < 15) return '#2d6a2d';
+  if (km < 25) return '#4caf50';
+  if (km < 35) return '#81c784';
+  return '#673AB7';
+}
+
+(function buildCalendar() {
+  const grid = document.getElementById('calGrid');
+  const byDate = {};
+  calData.forEach(d => byDate[d.date] = d.km);
+
+  const jan1 = new Date('2025-01-01');
+  const dow = jan1.getDay();
+  const start = new Date(jan1);
+  start.setDate(jan1.getDate() - (dow === 0 ? 6 : dow - 1));
+  const end = new Date(TODAY);
+
+  let current = new Date(start);
+  let lastMonth = -1;
+  let weekCol = null;
+
+  while (current <= end) {
+    const isoDay = current.getDay() === 0 ? 6 : current.getDay() - 1;
+    if (isoDay === 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'cal-week-wrap';
+      const lbl = document.createElement('div');
+      lbl.className = 'cal-month-lbl';
+      const mo = current.getMonth();
+      if (mo !== lastMonth) {
+        const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        lbl.textContent = mNames[mo] + (current.getFullYear()===2026 ? " '26" : mo===0 ? " '25" : '');
+        lastMonth = mo;
+      }
+      wrap.appendChild(lbl);
+      weekCol = document.createElement('div');
+      weekCol.className = 'cal-week';
+      wrap.appendChild(weekCol);
+      grid.appendChild(wrap);
+    }
+    const ds = current.toISOString().slice(0,10);
+    const km = byDate[ds] || 0;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    cell.style.background = kmColor(km);
+    if (ds === TODAY) { cell.style.outline = '2px solid #fff'; cell.style.outlineOffset = '0px'; }
+    if (km > 0) cell.setAttribute('data-tip', `${ds} · ${km} km`);
+    else cell.setAttribute('data-tip', `${ds} · rest`);
+    if (weekCol) weekCol.appendChild(cell);
+    current.setDate(current.getDate() + 1);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════════
+Chart.defaults.color = '#666';
+Chart.defaults.borderColor = '#1e1e1e';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+const weeklyChart  = new Chart(document.getElementById('weeklyChart'),  { type:'bar',  data:{labels:[],datasets:[]}, options: weeklyOpts() });
+const rollingChart = new Chart(document.getElementById('rollingChart'), { type:'line', data:{labels:[],datasets:[]}, options: rollingOpts() });
+const purposeChart = new Chart(document.getElementById('purposeChart'), { type:'bar',  data:{labels:[],datasets:[]}, options: purposeOpts() });
+const modalityChart= new Chart(document.getElementById('modalityChart'),{ type:'doughnut', data:{labels:[],datasets:[]}, options: modalityOpts() });
+
+function unitLabel() { return unit==='km'?'km':unit==='hrs'?'h':'m'; }
+function fmtVal(v)   { return unit==='elev' ? Math.round(v).toLocaleString() : v; }
+
+function weeklyOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label: ctx => {
+      if (unit==='elev') return ` ${Math.round(ctx.raw).toLocaleString()} m`;
+      if (ctx.datasetIndex===0) return ` ${ctx.raw} ${ul}`;
+      return ` ${wkElev[ctx.dataIndex].toLocaleString()} m elev`;
+    }}}},
+    scales:{
+      x:{ grid:{display:false}, ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:14} },
+      y:{ grid:{color:'#1e1e1e'}, ticks:{callback: v => unit==='elev' ? Math.round(v).toLocaleString()+'m' : v+ul } },
+      y2:{ position:'right', grid:{display:false}, ticks:{callback: v => (v/1000).toFixed(1)+'k m'}, display: unit!=='elev' }
+    }
+  };
+}
+function rollingOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label: ctx => {
+      if (ctx.datasetIndex===0) return ` ${fmtVal(ctx.raw)} ${ul} (28 days)`;
+      return ` reference`;
+    }}}},
+    scales:{
+      x:{ grid:{display:false}, ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:10} },
+      y:{ grid:{color:'#1e1e1e'}, min:0, ticks:{callback: v => unit==='elev' ? Math.round(v).toLocaleString()+'m' : v+ul} }
+    }
+  };
+}
+function purposeOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:9,padding:7,font:{size:10}}},
+              tooltip:{callbacks:{label: ctx => ` ${ctx.dataset.label}: ${fmtVal(ctx.raw)} ${ul}`}} },
+    scales:{
+      x:{ stacked:true, grid:{display:false} },
+      y:{ stacked:true, grid:{color:'#1e1e1e'}, ticks:{callback: v => unit==='elev' ? Math.round(v).toLocaleString()+'m' : v+ul} }
+    }
+  };
+}
+function modalityOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'right', labels:{boxWidth:9,padding:5,font:{size:10}}},
+              tooltip:{callbacks:{label: ctx => {
+                const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                return ` ${ctx.label}: ${fmtVal(ctx.raw)} ${ul} (${Math.round(ctx.raw/total*100)}%)`;
+              }}} }
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// UPDATE LOGIC
+// ══════════════════════════════════════════════════════════
+function filterIdx(dates, cutoff) {
+  return dates.reduce((acc,d,i) => { if (d >= cutoff) acc.push(i); return acc; }, []);
+}
+
+function updateAll() {
+  const cut = cutoffDate(timeWin);
+
+  // ── weekly
+  const wi = filterIdx(wkDates, cut);
+  const wLabels = wi.map(i => wkDisplay[i]);
+  const wVals   = wi.map(i => unit==='km' ? wkKm[i] : unit==='hrs' ? wkHrs[i] : wkElev[i]);
+  const wElev2  = wi.map(i => wkElev[i]);
+  weeklyChart.data.labels = wLabels;
+  const wColors = wVals.map(v => unit==='km'
+    ? (v>=60?'#673AB7':v>=40?'#4CAF50':'#2d6a2d')
+    : unit==='hrs'
+    ? (v>=15?'#673AB7':v>=8?'#4CAF50':'#2d6a2d')
+    : (v>=2000?'#673AB7':v>=800?'#4CAF50':'#2d6a2d'));
+  weeklyChart.data.datasets = unit==='elev'
+    ? [{ label:'vertical', data:wVals, backgroundColor:wColors, borderWidth:0, yAxisID:'y' }]
+    : [
+        { label: unit==='km'?'km':'hrs', data:wVals, backgroundColor:wColors, borderWidth:0, yAxisID:'y' },
+        { label:'elev', data:wElev2, type:'line', borderColor:'#FF9800', backgroundColor:'transparent',
+          borderWidth:1.5, pointRadius:0, tension:0.3, yAxisID:'y2' }
+      ];
+  weeklyChart.options = weeklyOpts();
+  weeklyChart.update();
+
+  // ── rolling
+  const ri = filterIdx(rollDates, cut);
+  const rLabels = ri.map(i => rollLabels[i]);
+  const rVals   = ri.map(i => unit==='km' ? rollKm[i] : unit==='hrs' ? rollHrs[i] : rollElev[i]);
+  const refVal  = unit==='km' ? 200 : unit==='hrs' ? 28 : 4000; // 50km/wk equiv or 1000m/wk × 4
+  rollingChart.data.labels = rLabels;
+  rollingChart.data.datasets = [
+    { label:'rolling', data:rVals, borderColor:'#2196F3', backgroundColor:'rgba(33,150,243,0.08)',
+      borderWidth:2, pointRadius:0, fill:true, tension:0.3 },
+    { label:'ref', data:Array(rVals.length).fill(refVal), borderColor:'#333',
+      borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false }
+  ];
+  rollingChart.options = rollingOpts();
+  rollingChart.update();
+
+  // ── purpose mix
+  const mi = filterIdx(monthKeys, cut.slice(0,7));
+  const mLabels = mi.map(i => monthDisplay[i]);
+  const pSrc = unit==='km' ? purposeDsKm : unit==='hrs' ? purposeDsHrs : purposeDsElev;
+  const pDs = pSrc.map(ds => ({
+    ...ds, data: mi.map(i => ds.data[i] || 0)
+  })).filter(ds => ds.data.some(v=>v>0));
+  purposeChart.data.labels = mLabels;
+  purposeChart.data.datasets = pDs;
+  purposeChart.options = purposeOpts();
+  purposeChart.update();
+
+  // ── modality (respects time window)
+  const modColorMap = {
+    'Trail':'#4CAF50','Road':'#2196F3','XC Ski':'#00BCD4','Skate Ski':'#80DEEA',
+    'Walk':'#FFCC02','Cycling':'#FF9800','Swim':'#E91E63','Strength':'#795548',
+    'Multi-sport':'#9C27B0','Resort ski':'#B0BEC5'
+  };
+  const modOrder = ['Trail','Road','XC Ski','Skate Ski','Walk','Cycling','Swim','Strength','Multi-sport','Resort ski'];
+  const filteredActs = allActivities.filter(a => a.date >= cut && a.date <= TODAY);
+  const modTotals = {};
+  filteredActs.forEach(a => {
+    const m = a.mod || 'Other';
+    if (!modTotals[m]) modTotals[m] = {km:0, hrs:0, elev:0};
+    const parts = a.dur.split(':');
+    const actHrs = parseInt(parts[0]) + parseInt(parts[1])/60;
+    modTotals[m].km   += (a.km || 0);
+    modTotals[m].hrs  += actHrs;
+    modTotals[m].elev += (a.elev || 0);
+  });
+  const sortedMods = [...new Set([...modOrder, ...Object.keys(modTotals)])].filter(m => modTotals[m]);
+  const modFiltered = sortedMods.map(m => ({
+    l: m,
+    v: unit==='km' ? modTotals[m].km : unit==='hrs' ? modTotals[m].hrs : modTotals[m].elev,
+    c: modColorMap[m] || '#888'
+  })).filter(x => x.v > 0);
+  modalityChart.data.labels   = modFiltered.map(x=>x.l);
+  modalityChart.data.datasets = [{ data:modFiltered.map(x=>x.v), backgroundColor:modFiltered.map(x=>x.c), borderWidth:1, borderColor:'#0f1117' }];
+  modalityChart.options = modalityOpts();
+  modalityChart.update();
+
+  // ── titles
+  const uLabel = unit==='km' ? 'km' : unit==='hrs' ? 'hours' : 'vertical (m)';
+  document.getElementById('weeklyTitle').textContent  = `Weekly volume (${uLabel})`;
+  document.getElementById('rollingTitle').textContent = `Rolling 28-day load (${uLabel})`;
+  document.getElementById('purposeTitle').textContent = `Monthly purpose mix (${uLabel})`;
+  const modWinLabel = {'all':'All time','12m':'Last 12 mo','6m':'Last 6 mo','3m':'Last 3 mo'}[timeWin];
+  document.getElementById('modTitle').textContent     = `By sport — ${modWinLabel} (${uLabel})`;
+
+  // ── stats
+  const sessions = rawSessions.filter(s => s.date >= cut && s.date <= TODAY);
+  const totKm    = sessions.reduce((a,s)=>a+s.km,0);
+  const totHrs   = sessions.reduce((a,s)=>a+s.hrs,0);
+  const totElev  = sessions.reduce((a,s)=>a+s.elev,0);
+  const nWeeks   = wi.length || 1;
+  document.getElementById('s-sessions').textContent = sessions.length;
+  document.getElementById('s-km').textContent       = Math.round(totKm).toLocaleString() + ' km';
+  document.getElementById('s-hrs').textContent      = Math.round(totHrs) + ' h';
+  document.getElementById('s-elev').textContent     = Math.round(totElev).toLocaleString();
+  if (unit==='km') {
+    document.getElementById('s-wkavg').textContent = Math.round(totKm/nWeeks) + ' km';
+    document.getElementById('s-wkavg-lbl').textContent = 'Avg km / week';
+  } else if (unit==='hrs') {
+    document.getElementById('s-wkavg').textContent = (totHrs/nWeeks).toFixed(1) + ' h';
+    document.getElementById('s-wkavg-lbl').textContent = 'Avg hours / week';
+  } else {
+    document.getElementById('s-wkavg').textContent = Math.round(totElev/nWeeks).toLocaleString() + ' m';
+    document.getElementById('s-wkavg-lbl').textContent = 'Avg elev / week';
+  }
+
+  // ── window label
+  const labels = {'all':'All time (Jan 2025–)','12m':'Last 12 months','6m':'Last 6 months','3m':'Last 3 months'};
+  document.getElementById('windowLabel').textContent = labels[timeWin];
+
+  // ── activity table
+  renderTable();
+}
+
+// ══════════════════════════════════════════════════════════
+// CONTROLS
+// ══════════════════════════════════════════════════════════
+function setUnit(u) {
+  unit = u;
+  document.querySelectorAll('#unitBtns button').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(`'${u}'`)));
+  updateAll();
+}
+function setWindow(w) {
+  timeWin = w;
+  document.querySelectorAll('#windowBtns button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${w}'`));
+  });
+  updateAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTIVITY TABLE
+// ══════════════════════════════════════════════════════════
+let sortCol = 'date';
+let sortAsc = false;
+
+function parseDurMins(s) {
+  if (!s) return 0;
+  const p = s.split(':');
+  return parseInt(p[0]) * 60 + (parseInt(p[1]) || 0);
+}
+
+function renderTable() {
+  const cut = cutoffDate(timeWin);
+  let rows = allActivities.filter(a => a.date >= cut && a.date <= TODAY);
+
+  rows.sort((a, b) => {
+    let av, bv;
+    if (sortCol === 'dur') {
+      av = parseDurMins(a.dur); bv = parseDurMins(b.dur);
+      return sortAsc ? av - bv : bv - av;
+    }
+    if (sortCol === 'km' || sortCol === 'elev') {
+      av = a[sortCol] != null ? a[sortCol] : -1;
+      bv = b[sortCol] != null ? b[sortCol] : -1;
+      return sortAsc ? av - bv : bv - av;
+    }
+    av = (a[sortCol] || '').toString();
+    bv = (b[sortCol] || '').toString();
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+
+  document.getElementById('tableTitle').textContent = `${rows.length} activities`;
+  document.getElementById('actTbody').innerHTML = rows.map(a => `
+    <tr>
+      <td class="dim">${a.date}</td>
+      <td>${a.name}</td>
+      <td><span class="mod-badge">${a.mod}</span></td>
+      <td><span class="badge" style="background:${a.pc}22;color:${a.pc}">${a.purpose}</span></td>
+      <td class="num">${a.km != null ? a.km.toFixed(1) : '—'}</td>
+      <td class="num">${a.dur || '—'}</td>
+      <td class="num">${a.elev != null ? a.elev.toLocaleString() : '—'}</td>
+    </tr>`).join('');
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = col !== 'date'; }
+  // update header arrows
+  document.querySelectorAll('table.act th').forEach(th => {
+    const c = th.getAttribute('onclick').replace("sortTable('","").replace("')","");
+    th.textContent = th.textContent.replace(/ [↑↓↕]$/,'') + (c === sortCol ? (sortAsc ? ' ↑' : ' ↓') : ' ↕');
+  });
+  renderTable();
+}
+
+// Initial render
+updateAll();
+</script>
+</body>
+</html>
