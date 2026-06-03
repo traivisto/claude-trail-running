@@ -1,0 +1,36 @@
+{
+  "mcpServers": {
+    "garmin": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "uvx",
+        "--python", "3.12",
+        "--from", "git+https://github.com/Taxuspt/garmin_mcp",
+        "garmin-mcp"
+      ]
+    },
+    "telegram-nemo": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "uvx",
+        "--from", "git+https://github.com/nemo-nescio/telegram-nemo",
+        "telegram-nemo"
+      ],
+      "env": {
+        "TELEGRAM_BOT_TRAIL_COACH": "YOUR_BOT_TOKEN_HERE"
+      }
+    },
+    "oura": {
+      "command": "uvx",
+      "args": [
+        "--from", "git+https://github.com/daveremy/oura-mcp",
+        "oura-mcp"
+      ],
+      "env": {
+        "OURA_PERSONAL_ACCESS_TOKEN": "YOUR_OURA_TOKEN_HERE"
+      }
+    }
+  }
+}

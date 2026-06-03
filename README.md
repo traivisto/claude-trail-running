@@ -161,7 +161,10 @@ Invoke any skill just by asking naturally — Claude recognises the intent and l
 All MCP servers are configured in:
 `%APPDATA%\Claude\claude_desktop_config.json`
 
-Restart Claude Desktop from the system tray after any changes to this file.
+A ready-to-use template with all three connectors is included in this repo:
+**[`claude_desktop_config.example.json`](claude_desktop_config.example.json)**
+
+Copy it to `%APPDATA%\Claude\claude_desktop_config.json`, replace the placeholder token values, and restart Claude Desktop from the system tray.
 
 ### Garmin Connect
 Provides: activity data, Body Battery, sleep score, training readiness, HRV, heart rates.
