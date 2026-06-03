@@ -8,9 +8,17 @@ An AI coaching system for trail and ultra runners. Connects your Garmin and Oura
 
 Follow these steps once before using any coaching features.
 
-**Step 1 — Copy your workspace files**
+**Step 1 — Connect your data sources**
 
-Copy these files from `setup-template/` to the workspace root (the folder you're working in):
+Copy `claude_desktop_config.example.json` to `%APPDATA%\Claude\claude_desktop_config.json`, fill in your API tokens, and restart Claude Desktop from the system tray. See the [MCP servers](#mcp-servers-data-sources) section below for token setup instructions.
+
+**Step 2 — Open your workspace in Cowork**
+
+In Claude Desktop, open this folder as your Cowork workspace. Claude will read `CLAUDE.md` automatically and know how to use all the coaching skills.
+
+**Step 3 — Copy your workspace files**
+
+Copy these files from `setup-template/` to the workspace root:
 
 | File | What it is |
 |------|-----------|
@@ -20,53 +28,42 @@ Copy these files from `setup-template/` to the workspace root (the folder you're
 | `memory.md` | Technical notes and coaching continuity |
 | `training-dashboard.html` | Blank dashboard — populated by `update-dashboard.py` |
 
-**Step 2 — Fill in your athlete profile**
+**Step 4 — Fill in your athlete profile**
 
-Open `athlete-profile.md` and fill in the `Athlete Config` block at the top. This is what all coaching skills use for your personal thresholds. At minimum, fill in:
+Ask Claude for help: *"Help me fill in my athlete profile"*
+
+Claude can pull your resting HR, HRV baseline, and recent training volume directly from Garmin to pre-fill the key fields. At minimum you'll need:
 
 - `lthr_bpm` — your lactate threshold heart rate
 - `max_hr_bpm` — your maximum HR
 - `resting_hr_bpm_range` and `hrv_baseline_ms_range` — for daily readiness interpretation
 - `hr_zone_z1_max` through `hr_zone_z5_range` — used when creating Garmin workouts
 
-**Step 3 — Fill in your race card**
+**Step 5 — Fill in your race card**
 
-Open `race-card.md` and add your target race: date, distance, elevation, aid stations, cutoffs. The more detail you add, the better the training plan can be tailored.
+Ask Claude for help: *"Help me fill in my race card for [race name]"*
 
-**Step 4 — Edit the dashboard header**
+Claude can look up race details online and help structure aid stations, cutoffs, and pacing targets. The more detail you add, the better the training plan can be tailored.
 
-Open `training-dashboard.html` in a text editor and change two lines near the top:
+**Step 6 — Edit the dashboard header**
+
+Open `training-dashboard.html` in a text editor and update the name and race at the top:
 
 ```html
-<title>[YOUR NAME] — Training Dashboard</title>     ← your name
-<span class="title">[YOUR NAME]</span>              ← same name
-<span class="sub">[Race name · Race date]</span>   ← your race
+<title>[YOUR NAME] — Training Dashboard</title>
+<span class="title">[YOUR NAME]</span>
+<span class="sub">[Race name · Race date]</span>
 ```
 
-**Step 5 — Connect your data sources**
-
-See the MCP Servers section below for setup instructions.
-
-**Step 6 — Build your activity cache**
+**Step 7 — Build your activity cache**
 
 Ask Claude: *"Update my activity cache"*
 
-This fetches your Garmin history and builds `activity-cache.csv`. First sync may take a few minutes depending on how far back your history goes.
-
-**Step 7 — Generate your dashboard**
-
-Run the dashboard script from the workspace folder:
-
-```
-python update-dashboard.py
-```
-
-Open `training-dashboard.html` in your browser. This updates automatically after every cache sync — Claude runs it for you after each update.
+This fetches your Garmin history and builds `activity-cache.csv`. The first sync may take a few minutes depending on how far back your history goes.
 
 **Step 8 — Ask for a training program**
 
-Once your profile and race card are filled in, ask:
-*"Create a training program for my race"*
+Ask: *"Create a training program for my race"*
 
 Claude will build a periodised season plan (`training-program.md`) based on your profile, race date, and current fitness.
 
