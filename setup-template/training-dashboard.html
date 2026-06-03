@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[YOUR NAME] — Training Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f1117; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; }
+  h2 { font-size: 11px; font-weight: 600; color: #777; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #1e1e1e; flex-wrap: wrap; }
+  .toolbar .title { font-size: 15px; font-weight: 700; color: #fff; margin-right: 6px; }
+  .toolbar .sub { font-size: 11px; color: #555; }
+  .toolbar .spacer { flex: 1; }
+  .btn-group { display: flex; border: 1px solid #333; border-radius: 6px; overflow: hidden; }
+  .btn-group button {
+    background: none; border: none; color: #888; padding: 5px 11px;
+    font-size: 11px; cursor: pointer; border-right: 1px solid #333; transition: all 0.15s;
+  }
+  .btn-group button:last-child { border-right: none; }
+  .btn-group button.active { background: #2a2a2a; color: #fff; }
+  .btn-group button:hover:not(.active) { background: #1a1a1a; color: #ccc; }
+  .divider { width: 1px; height: 20px; background: #2a2a2a; }
+
+  /* ── STATS ROW ── */
+  .stats { display: flex; border-bottom: 1px solid #1e1e1e; flex-wrap: wrap; }
+  .stat { padding: 10px 18px; border-right: 1px solid #1e1e1e; }
+  .stat .val { font-size: 20px; font-weight: 700; color: #fff; }
+  .stat .lbl { font-size: 10px; color: #555; margin-top: 1px; }
+
+  /* ── SECTIONS ── */
+  .section { padding: 14px 20px; border-bottom: 1px solid #1a1a1a; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #1a1a1a; }
+  .row2 .section { border-bottom: none; border-right: 1px solid #1a1a1a; }
+  .row2 .section:last-child { border-right: none; }
+  .row3 { display: grid; grid-template-columns: 2fr 1fr; border-bottom: 1px solid #1a1a1a; }
+  .row3 .section { border-bottom: none; border-right: 1px solid #1a1a1a; }
+  .row3 .section:last-child { border-right: none; }
+
+  /* ── CALENDAR ── */
+  .cal-outer { overflow-x: auto; padding-bottom: 4px; }
+  .cal-inner { display: inline-flex; align-items: flex-start; gap: 0; }
+  .dow-col { display: flex; flex-direction: column; gap: 3px; padding-top: 16px; margin-right: 5px; }
+  .dow-lbl { width: 14px; height: 11px; font-size: 9px; color: #444; line-height: 11px; text-align: right; }
+  .cal-grid { display: inline-flex; gap: 3px; }
+  .cal-week-wrap { display: flex; flex-direction: column; }
+  .cal-month-lbl { height: 14px; font-size: 10px; color: #555; line-height: 14px; text-align: left; padding-left: 1px; white-space: nowrap; }
+  .cal-week { display: flex; flex-direction: column; gap: 3px; }
+  .cal-day { width: 11px; height: 11px; border-radius: 2px; cursor: default; position: relative; }
+  .cal-day[data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+    background: #2a2a2a; color: #eee; padding: 3px 7px; border-radius: 4px;
+    font-size: 11px; white-space: nowrap; z-index: 99; pointer-events: none;
+    border: 1px solid #444;
+  }
+  .cal-legend { display: flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 10px; color: #555; }
+  .cal-legend .box { width: 11px; height: 11px; border-radius: 2px; }
+
+  footer { padding: 10px 20px; color: #2a2a2a; font-size: 11px; }
+
+  /* ── ACTIVITY TABLE ── */
+  .act-table-wrap { overflow-x: auto; }
+  table.act { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.act th { color: #555; font-weight: 600; text-align: left; padding: 5px 10px; border-bottom: 1px solid #222; white-space: nowrap; cursor: pointer; user-select: none; }
+  table.act th:hover { color: #aaa; }
+  table.act td { padding: 5px 10px; border-bottom: 1px solid #181818; white-space: nowrap; color: #ccc; }
+  table.act tr:hover td { background: #161616; }
+  .badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .mod-badge { background: #222; color: #888; padding: 1px 6px; border-radius: 4px; font-size: 10px; }
+  table.act .num { text-align: right; color: #999; }
+  table.act .dim { color: #555; }
+</style>
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <span class="title">[YOUR NAME]</span>
+  <span class="sub">[Race name · Race date]</span>
+  <div class="spacer"></div>
+
+  <!-- Unit toggle -->
+  <div class="btn-group" id="unitBtns">
+    <button class="active" onclick="setUnit('km')">km</button>
+    <button onclick="setUnit('hrs')">hours</button>
+    <button onclick="setUnit('elev')">vertical</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Time window -->
+  <div class="btn-group" id="windowBtns">
+    <button onclick="setWindow('3m')">3 mo</button>
+    <button onclick="setWindow('6m')">6 mo</button>
+    <button onclick="setWindow('12m')">12 mo</button>
+    <button class="active" onclick="setWindow('all')">All</button>
+  </div>
+
+  <span class="sub" id="windowLabel" style="color:#555;min-width:110px;text-align:right"></span>
+</div>
+
+<!-- STATS -->
+<div class="stats" id="statsRow">
+  <div class="stat"><div class="val" id="s-sessions">—</div><div class="lbl">Sessions</div></div>
+  <div class="stat"><div class="val" id="s-km">—</div><div class="lbl">km</div></div>
+  <div class="stat"><div class="val" id="s-hrs">—</div><div class="lbl">Hours</div></div>
+  <div class="stat"><div class="val" id="s-elev">—</div><div class="lbl">Elevation (m)</div></div>
+  <div class="stat"><div class="val" id="s-wkavg">—</div><div class="lbl" id="s-wkavg-lbl">Avg / week</div></div>
+  <div class="stat"><div class="val" style="color:#e53935">🔴 25/100</div><div class="lbl">Readiness · Strained</div></div>
+</div>
+
+<!-- CALENDAR -->
+<div class="section">
+  <h2>Training calendar — daily km</h2>
+  <div class="cal-outer"><div class="cal-inner">
+    <div class="dow-col">
+      <div class="dow-lbl"></div>
+      <div class="dow-lbl">M</div><div class="dow-lbl"></div>
+      <div class="dow-lbl">W</div><div class="dow-lbl"></div>
+      <div class="dow-lbl">F</div><div class="dow-lbl"></div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+  </div></div>
+  <div class="cal-legend">
+    <span>Less</span>
+    <div class="box" style="background:#1e1e1e"></div>
+    <div class="box" style="background:#1a3d1a"></div>
+    <div class="box" style="background:#2d6a2d"></div>
+    <div class="box" style="background:#4caf50"></div>
+    <div class="box" style="background:#81c784"></div>
+    <span>More km</span>
+    <span style="margin-left:10px">·</span>
+    <div class="box" style="background:#673AB7;margin-left:8px"></div>
+    <span>≥ 35 km day</span>
+    <span style="margin-left:10px">·</span>
+    <div class="box" style="background:#fff;outline:2px solid #fff;margin-left:8px"></div>
+    <span>Today</span>
+  </div>
+</div>
+
+<!-- WEEKLY + ROLLING -->
+<div class="row2">
+  <div class="section">
+    <h2 id="weeklyTitle">Weekly volume (km)</h2>
+    <div style="position:relative;height:155px"><canvas id="weeklyChart"></canvas></div>
+  </div>
+  <div class="section">
+    <h2 id="rollingTitle">Rolling 28-day load (km)</h2>
+    <div style="position:relative;height:155px"><canvas id="rollingChart"></canvas></div>
+  </div>
+</div>
+
+<!-- PURPOSE MIX + MODALITY -->
+<div class="row3">
+  <div class="section">
+    <h2 id="purposeTitle">Monthly purpose mix (km)</h2>
+    <div style="position:relative;height:195px"><canvas id="purposeChart"></canvas></div>
+  </div>
+  <div class="section">
+    <h2 id="modTitle">All-time by sport</h2>
+    <div style="position:relative;height:195px"><canvas id="modalityChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ACTIVITY TABLE -->
+<div class="section">
+  <h2 id="tableTitle">All activities</h2>
+  <div class="act-table-wrap">
+    <table class="act" id="actTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('date')">Date ↕</th>
+          <th onclick="sortTable('name')">Activity ↕</th>
+          <th onclick="sortTable('mod')">Type ↕</th>
+          <th onclick="sortTable('purpose')">Purpose ↕</th>
+          <th onclick="sortTable('km')" style="text-align:right">km ↕</th>
+          <th onclick="sortTable('dur')" style="text-align:right">Duration ↕</th>
+          <th onclick="sortTable('elev')" style="text-align:right">Elev m ↕</th>
+        </tr>
+      </thead>
+      <tbody id="actTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>No data yet · Run update-dashboard.py after building your activity cache</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════
+
+// Per-session raw (for stats)
+const rawSessions = [];
+
+// Pre-aggregated weekly arrays
+const wkDates   = [];
+const wkDisplay = [];
+const wkKm  = [];
+const wkHrs = [];
+const wkElev= [256,1310,723,455,791,611,1218,425,524,4034,917,562,558,1200,4693,101,1282,1240,339,332,650,129,2076,2348,6856,138,244,2306,159,318,932,686,763,926,129,1470,495,3994,72,862,393,788,130,414,141,282,634,317,461,302,395,3327,1206,631,1239,1276,342,218,578,3548,95,271,387,51,0,165,769,580,1703,997,206,504];
+
+const rollDates  = ["2025-01-29","2025-02-05","2025-02-12","2025-02-19","2025-02-26","2025-03-05","2025-03-12","2025-03-19","2025-03-26","2025-04-02","2025-04-09","2025-04-16","2025-04-23","2025-04-30","2025-05-07","2025-05-14","2025-05-21","2025-05-28","2025-06-04","2025-06-11","2025-06-18","2025-06-25","2025-07-02","2025-07-09","2025-07-16","2025-07-23","2025-07-30","2025-08-06","2025-08-13","2025-08-20","2025-08-27","2025-09-03","2025-09-10","2025-09-17","2025-09-24","2025-10-01","2025-10-08","2025-10-15","2025-10-22","2025-10-29","2025-11-05","2025-11-12","2025-11-19","2025-11-26","2025-12-03","2025-12-10","2025-12-17","2025-12-24","2025-12-31","2026-01-07","2026-01-14","2026-01-21","2026-01-28","2026-02-04","2026-02-11","2026-02-18","2026-02-25","2026-03-04","2026-03-11","2026-03-18","2026-03-25","2026-04-01","2026-04-08","2026-04-15","2026-04-22","2026-04-29","2026-05-06","2026-05-13"];
+const rollLabels = ["Jan 29'25","Feb 5","Feb 12","Feb 19","Feb 26","Mar 5","Mar 12","Mar 19","Mar 26","Apr 2","Apr 9","Apr 16","Apr 23","Apr 30","May 7","May 14","May 21","May 28","Jun 4","Jun 11","Jun 18","Jun 25","Jul 2","Jul 9","Jul 16","Jul 23","Jul 30","Aug 6","Aug 13","Aug 20","Aug 27","Sep 3","Sep 10","Sep 17","Sep 24","Oct 1","Oct 8","Oct 15","Oct 22","Oct 29","Nov 5","Nov 12","Nov 19","Nov 26","Dec 3","Dec 10","Dec 17","Dec 24","Dec 31","Jan 7'26","Jan 14","Jan 21","Jan 28","Feb 4","Feb 11","Feb 18","Feb 25","Mar 4","Mar 11","Mar 18","Mar 25","Apr 1","Apr 8","Apr 15","Apr 22","Apr 29","May 6","May 13"];
+const rollKm  = [166.2,161.4,159.1,145.9,166.3,194.7,188.0,205.6,196.1,166.7,175.6,171.7,155.2,173.6,180.8,180.8,188.0,156.4,134.4,129.5,243.5,214.7,226.4,226.1,119.0,142.0,132.0,134.6,130.9,136.2,171.1,157.3,167.1,164.4,188.6,170.0,140.9,140.6,90.9,103.6,104.7,101.2,90.9,87.1,98.0,108.2,129.8,150.7,156.1,160.2,163.2,157.0,162.8,155.0,170.3,193.1,204.0,205.4,155.5,110.1,66.4,59.7,95.1,127.6,172.9,218.2,228.4,218.8];
+const rollHrs = [22.5,22.7,21.1,20.4,22.6,24.6,25.5,25.7,25.5,23.0,23.9,26.4,24.3,26.9,27.6,24.3,24.4,19.2,15.8,16.6,47.6,44.5,43.4,41.5,13.2,15.9,16.0,17.7,16.0,17.3,22.8,19.9,22.9,22.3,31.4,30.6,26.0,25.4,12.8,14.3,14.0,13.4,12.8,11.7,12.4,14.1,14.7,19.9,24.1,24.7,25.5,22.0,19.6,18.2,21.8,27.0,32.0,32.6,25.1,19.3,11.9,12.1,17.3,20.8,27.4,33.0,35.2,33.5];
+const rollElev= [2778,2851,2505,3081,3193,5712,6245,5881,5961,3097,3206,6935,6470,7360,7269,3021,3601,2518,1876,3128,11606,11321,11129,10010,2754,3066,3212,3521,2269,2517,3023,2659,3149,3011,6050,6027,5322,5345,2224,1883,1775,1454,924,1469,1430,1661,1688,2973,4394,5299,5705,4861,4488,3523,3060,3840,4630,4521,4321,2830,709,523,744,1075,1961,3586,3975,3809];
+
+const monthKeys    = ["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05"];
+const monthDisplay = ["Jan 2025","Feb 2025","Mar 2025","Apr 2025","May 2025","Jun 2025","Jul 2025","Aug 2025","Sep 2025","Oct 2025","Nov 2025","Dec 2025","Jan 2026","Feb 2026","Mar 2026","Apr 2026","May 2026"];
+
+const purposeDsKm = [{"label":"Aerobic base","data":[76.8,59.0,85.6,44.5,59.5,24.2,47.5,22.4,22.1,18.2,66.5,66.8,51.4,75.3,30.8,98.4,54.0],"backgroundColor":"#4CAF50"},{"label":"Long effort","data":[68.8,63.4,80.9,54.3,41.7,31.1,30.0,43.0,28.4,20.9,20.1,38.7,39.3,32.8,9.2,31.7,0.0],"backgroundColor":"#2196F3"},{"label":"Very long / Race sim","data":[0.0,9.2,10.0,45.1,22.0,153.0,0.0,54.1,121.3,0.0,0.0,33.8,0.0,41.8,0.0,57.4,21.4],"backgroundColor":"#673AB7"},{"label":"Tempo / Threshold","data":[35.0,17.4,34.0,37.1,18.9,13.1,62.3,31.1,7.9,42.8,6.6,30.7,29.2,15.2,11.9,12.9,0.0],"backgroundColor":"#FF9800"},{"label":"Interval / VO2max","data":[0.0,0.0,0.0,0.0,14.3,0.0,0.0,10.1,0.0,6.4,8.3,0.0,35.4,0.0,0.0,8.0,13.3],"backgroundColor":"#F44336"},{"label":"Recovery","data":[1.3,2.8,5.5,0.0,3.4,19.2,2.3,4.0,9.2,2.5,4.0,0.8,0.0,8.0,14.8,6.5,0.0],"backgroundColor":"#9E9E9E"},{"label":"Cross-training","data":[0.0,0.0,14.6,0.0,0.0,0.0,0.0,4.9,5.3,12.9,0.0,1.9,15.9,22.5,22.6,10.6,2.3],"backgroundColor":"#00BCD4"}];
+const purposeDsHrs = [{"label":"Aerobic base","data":[8.6,6.3,10.1,5.0,6.7,3.0,5.4,2.6,2.8,2.1,8.2,7.6,5.6,9.1,3.4,12.7,7.6],"backgroundColor":"#4CAF50"},{"label":"Long effort","data":[12.0,8.5,10.0,9.2,4.7,5.2,3.6,5.5,3.5,3.0,2.5,4.5,6.4,5.7,2.4,4.3,0.0],"backgroundColor":"#2196F3"},{"label":"Very long / Race sim","data":[0.0,3.0,3.1,8.7,3.7,34.9,0.0,8.2,23.0,0.0,0.0,9.4,0.0,7.4,0.0,8.1,3.0],"backgroundColor":"#673AB7"},{"label":"Tempo / Threshold","data":[3.2,1.9,3.2,4.4,1.7,1.2,8.1,2.9,1.0,4.3,0.6,3.3,2.5,1.5,1.1,1.6,0.0],"backgroundColor":"#FF9800"},{"label":"Interval / VO2max","data":[0.0,0.0,0.0,0.0,2.0,0.0,0.0,0.8,0.0,0.9,0.7,0.0,4.4,0.0,0.0,0.8,1.5],"backgroundColor":"#F44336"},{"label":"Recovery","data":[0.2,0.3,0.6,0.0,0.8,0.8,0.3,0.5,1.5,0.4,0.5,0.4,0.0,3.3,2.0,0.8,0.0],"backgroundColor":"#9E9E9E"},{"label":"Cross-training","data":[0.0,0.0,2.2,0.0,0.0,0.0,0.0,1.1,1.3,2.5,0.0,0.8,1.6,4.0,6.4,3.3,1.0],"backgroundColor":"#00BCD4"},{"label":"Strength","data":[0.0,1.4,1.3,0.5,0.5,0.6,0.0,0.5,0.0,1.0,1.1,0.0,0.0,1.0,0.0,2.3,1.4],"backgroundColor":"#795548"}];
+
+const purposeDsElev = [{"label":"Aerobic base","data":[801.0,674.0,1406.0,362.0,686.0,564.0,542.0,445.0,553.0,274.0,1253.0,870.0,616.0,1153.0,247.0,1343.0,587.0],"backgroundColor":"#4CAF50"},{"label":"Long effort","data":[1748.0,1014.0,3494.0,4325.0,1109.0,1558.0,485.0,960.0,335.0,553.0,323.0,404.0,2085.0,768.0,317.0,447.0,0.0],"backgroundColor":"#2196F3"},{"label":"Very long / Race sim","data":[0.0,929.0,903.0,1703.0,552.0,9204.0,0.0,1055.0,5051.0,0.0,0.0,2721.0,0.0,2401.0,0.0,1145.0,451.0],"backgroundColor":"#673AB7"},{"label":"Tempo / Threshold","data":[350.0,421.0,345.0,1017.0,102.0,92.0,2329.0,353.0,300.0,583.0,29.0,500.0,364.0,187.0,0.0,545.0,0.0],"backgroundColor":"#FF9800"},{"label":"Interval / VO2max","data":[0.0,0.0,0.0,0.0,69.0,0.0,0.0,44.0,0.0,6.0,42.0,0.0,1321.0,0.0,0.0,47.0,227.0],"backgroundColor":"#F44336"},{"label":"Recovery","data":[21.0,34.0,56.0,0.0,41.0,137.0,27.0,38.0,101.0,109.0,50.0,0.0,0.0,12.0,24.0,45.0,0.0],"backgroundColor":"#9E9E9E"},{"label":"Cross-training","data":[0.0,0.0,188.0,0.0,0.0,0.0,0.0,48.0,72.0,358.0,0.0,5.0,187.0,24.0,121.0,87.0,0.0],"backgroundColor":"#00BCD4"}];
+
+// Merged modality
+const modData = {
+  labels: ["Trail","Road","XC Ski","Skate Ski","Walk","Cycling","Swim","Strength"],
+  km:   [1720.6,807.9,63.6,48.3,94.9,19.2,14.1,0.1],
+  hrs:  [266.1,87.6,6.7,4.5,22.8,0.8,7.4,12.3],
+  elev: [57257,6534,806,453,1353,137,0,0],
+  colors: ["#4CAF50","#2196F3","#00BCD4","#80DEEA","#FFCC02","#FF9800","#E91E63","#795548"]
+};
+
+const calData = [{"date":"2025-01-01","km":1.26},{"date":"2025-01-02","km":3.37},{"date":"2025-01-04","km":15.2},{"date":"2025-01-05","km":7.04},{"date":"2025-01-06","km":15.58},{"date":"2025-01-08","km":6.49},{"date":"2025-01-09","km":7.2},{"date":"2025-01-10","km":5.99},{"date":"2025-01-11","km":4.62},{"date":"2025-01-12","km":5.38},{"date":"2025-01-15","km":9.37},{"date":"2025-01-16","km":5.49},{"date":"2025-01-17","km":8.43},{"date":"2025-01-18","km":7.51},{"date":"2025-01-19","km":19.15},{"date":"2025-01-22","km":8.0},{"date":"2025-01-23","km":10.01},{"date":"2025-01-25","km":8.66},{"date":"2025-01-26","km":13.47},{"date":"2025-01-28","km":5.2},{"date":"2025-01-30","km":14.51},{"date":"2025-02-01","km":10.67},{"date":"2025-02-02","km":10.01},{"date":"2025-02-05","km":7.78},{"date":"2025-02-08","km":7.64},{"date":"2025-02-09","km":19.82},{"date":"2025-02-10","km":2.78},{"date":"2025-02-13","km":9.02},{"date":"2025-02-15","km":9.76},{"date":"2025-02-16","km":9.18},{"date":"2025-02-18","km":7.37},{"date":"2025-02-21","km":7.13},{"date":"2025-02-22","km":11.39},{"date":"2025-02-23","km":6.3},{"date":"2025-02-25","km":17.23},{"date":"2025-02-26","km":15.71},{"date":"2025-03-01","km":7.17},{"date":"2025-03-02","km":14.02},{"date":"2025-03-03","km":10.14},{"date":"2025-03-04","km":34.51},{"date":"2025-03-05","km":5.55},{"date":"2025-03-08","km":7.01},{"date":"2025-03-09","km":10.02},{"date":"2025-03-11","km":6.52},{"date":"2025-03-13","km":8.65},{"date":"2025-03-14","km":16.82},{"date":"2025-03-15","km":8.57},{"date":"2025-03-16","km":10.85},{"date":"2025-03-19","km":8.01},{"date":"2025-03-21","km":7.72},{"date":"2025-03-22","km":15.02},{"date":"2025-03-23","km":17.4},{"date":"2025-03-25","km":8.17},{"date":"2025-03-27","km":9.28},{"date":"2025-03-28","km":4.45},{"date":"2025-03-29","km":10.14},{"date":"2025-03-30","km":10.67},{"date":"2025-04-02","km":7.42},{"date":"2025-04-04","km":8.94},{"date":"2025-04-05","km":14.71},{"date":"2025-04-08","km":8.74},{"date":"2025-04-10","km":14.23},{"date":"2025-04-11","km":7.22},{"date":"2025-04-12","km":15.22},{"date":"2025-04-13","km":12.38},{"date":"2025-04-18","km":14.01},{"date":"2025-04-19","km":10.85},{"date":"2025-04-21","km":6.93},{"date":"2025-04-24","km":7.5},{"date":"2025-04-26","km":12.42},{"date":"2025-04-27","km":30.42},{"date":"2025-04-29","km":10.02},{"date":"2025-05-01","km":10.17},{"date":"2025-05-03","km":21.96},{"date":"2025-05-04","km":7.48},{"date":"2025-05-08","km":10.06},{"date":"2025-05-10","km":15.54},{"date":"2025-05-11","km":6.97},{"date":"2025-05-13","km":9.71},{"date":"2025-05-14","km":6.78},{"date":"2025-05-17","km":9.57},{"date":"2025-05-18","km":13.34},{"date":"2025-05-21","km":16.02},{"date":"2025-05-22","km":9.22},{"date":"2025-05-25","km":8.46},{"date":"2025-05-26","km":11.11},{"date":"2025-05-31","km":3.37},{"date":"2025-06-02","km":6.46},{"date":"2025-06-03","km":7.75},{"date":"2025-06-05","km":13.06},{"date":"2025-06-07","km":15.89},{"date":"2025-06-08","km":15.21},{"date":"2025-06-15","km":29.68},{"date":"2025-06-16","km":39.24},{"date":"2025-06-17","km":44.61},{"date":"2025-06-18","km":39.46},{"date":"2025-06-29","km":10.01},{"date":"2025-06-30","km":19.25},{"date":"2025-07-04","km":12.54},{"date":"2025-07-05","km":11.62},{"date":"2025-07-07","km":14.52},{"date":"2025-07-08","km":5.15},{"date":"2025-07-10","km":22.48},{"date":"2025-07-12","km":15.45},{"date":"2025-07-14","km":8.01},{"date":"2025-07-19","km":11.5},{"date":"2025-07-22","km":11.45},{"date":"2025-07-26","km":10.02},{"date":"2025-07-29","km":9.28},{"date":"2025-07-31","km":10.01},{"date":"2025-08-02","km":10.06},{"date":"2025-08-03","km":20.04},{"date":"2025-08-06","km":6.32},{"date":"2025-08-08","km":10.02},{"date":"2025-08-10","km":20.01},{"date":"2025-08-12","km":12.23},{"date":"2025-08-15","km":5.5},{"date":"2025-08-16","km":4.94},{"date":"2025-08-17","km":10.73},{"date":"2025-08-20","km":7.04},{"date":"2025-08-21","km":6.03},{"date":"2025-08-23","km":10.19},{"date":"2025-08-24","km":34.03},{"date":"2025-08-27","km":3.95},{"date":"2025-08-29","km":8.39},{"date":"2025-09-01","km":16.38},{"date":"2025-09-03","km":7.87},{"date":"2025-09-06","km":42.89},{"date":"2025-09-08","km":4.18},{"date":"2025-09-10","km":5.01},{"date":"2025-09-13","km":12.07},{"date":"2025-09-14","km":10.51},{"date":"2025-09-17","km":2.91},{"date":"2025-09-20","km":78.38},{"date":"2025-09-28","km":5.33},{"date":"2025-09-30","km":8.69},{"date":"2025-10-02","km":6.1},{"date":"2025-10-03","km":6.81},{"date":"2025-10-05","km":10.07},{"date":"2025-10-09","km":6.93},{"date":"2025-10-12","km":10.79},{"date":"2025-10-14","km":7.52},{"date":"2025-10-17","km":13.37},{"date":"2025-10-18","km":12.77},{"date":"2025-10-22","km":2.52},{"date":"2025-10-23","km":6.37},{"date":"2025-10-26","km":5.29},{"date":"2025-10-29","km":15.08},{"date":"2025-11-02","km":20.06},{"date":"2025-11-04","km":4.0},{"date":"2025-11-06","km":6.64},{"date":"2025-11-08","km":7.7},{"date":"2025-11-10","km":7.38},{"date":"2025-11-15","km":6.2},{"date":"2025-11-16","km":6.82},{"date":"2025-11-19","km":5.4},{"date":"2025-11-20","km":8.31},{"date":"2025-11-23","km":7.22},{"date":"2025-11-25","km":7.34},{"date":"2025-11-29","km":10.87},{"date":"2025-11-30","km":7.55},{"date":"2025-12-01","km":5.76},{"date":"2025-12-03","km":10.84},{"date":"2025-12-04","km":1.33},{"date":"2025-12-06","km":8.57},{"date":"2025-12-07","km":22.0},{"date":"2025-12-11","km":4.88},{"date":"2025-12-13","km":8.01},{"date":"2025-12-14","km":16.73},{"date":"2025-12-17","km":10.42},{"date":"2025-12-21","km":12.26},{"date":"2025-12-22","km":17.34},{"date":"2025-12-23","km":5.26},{"date":"2025-12-24","km":8.9},{"date":"2025-12-25","km":0.6},{"date":"2025-12-26","km":16.42},{"date":"2025-12-28","km":8.76},{"date":"2025-12-29","km":8.26},{"date":"2025-12-31","km":6.37},{"date":"2026-01-02","km":5.74},{"date":"2026-01-03","km":7.83},{"date":"2026-01-04","km":17.04},{"date":"2026-01-06","km":5.41},{"date":"2026-01-08","km":5.48},{"date":"2026-01-10","km":10.91},{"date":"2026-01-11","km":10.52},{"date":"2026-01-13","km":5.14},{"date":"2026-01-14","km":10.97},{"date":"2026-01-16","km":8.36},{"date":"2026-01-17","km":10.53},{"date":"2026-01-18","km":13.31},{"date":"2026-01-21","km":5.34},{"date":"2026-01-22","km":8.26},{"date":"2026-01-24","km":10.04},{"date":"2026-01-25","km":15.09},{"date":"2026-01-28","km":12.79},{"date":"2026-01-29","km":8.46},{"date":"2026-02-01","km":10.81},{"date":"2026-02-02","km":9.01},{"date":"2026-02-05","km":7.9},{"date":"2026-02-07","km":14.02},{"date":"2026-02-08","km":15.65},{"date":"2026-02-09","km":8.26},{"date":"2026-02-10","km":5.5},{"date":"2026-02-11","km":7.01},{"date":"2026-02-14","km":9.01},{"date":"2026-02-15","km":13.18},{"date":"2026-02-16","km":21.21},{"date":"2026-02-17","km":0.58},{"date":"2026-02-18","km":16.35},{"date":"2026-02-19","km":21.82},{"date":"2026-02-20","km":13.76},{"date":"2026-02-21","km":1.0},{"date":"2026-02-22","km":10.48},{"date":"2026-02-25","km":10.01},{"date":"2026-03-01","km":12.72},{"date":"2026-03-03","km":15.33},{"date":"2026-03-04","km":1.63},{"date":"2026-03-05","km":8.42},{"date":"2026-03-12","km":2.65},{"date":"2026-03-13","km":3.0},{"date":"2026-03-14","km":9.24},{"date":"2026-03-21","km":5.46},{"date":"2026-03-22","km":5.51},{"date":"2026-03-24","km":2.43},{"date":"2026-03-26","km":2.54},{"date":"2026-03-27","km":4.78},{"date":"2026-03-28","km":4.54},{"date":"2026-03-29","km":4.09},{"date":"2026-03-31","km":7.0},{"date":"2026-04-02","km":6.55},{"date":"2026-04-03","km":6.74},{"date":"2026-04-04","km":16.01},{"date":"2026-04-06","km":7.06},{"date":"2026-04-08","km":7.54},{"date":"2026-04-09","km":8.01},{"date":"2026-04-10","km":3.38},{"date":"2026-04-11","km":6.53},{"date":"2026-04-12","km":16.79},{"date":"2026-04-14","km":7.58},{"date":"2026-04-15","km":5.1},{"date":"2026-04-16","km":6.83},{"date":"2026-04-18","km":23.63},{"date":"2026-04-19","km":11.24},{"date":"2026-04-20","km":3.43},{"date":"2026-04-21","km":8.09},{"date":"2026-04-22","km":5.4},{"date":"2026-04-23","km":5.46},{"date":"2026-04-25","km":11.92},{"date":"2026-04-26","km":35.27},{"date":"2026-04-28","km":8.2},{"date":"2026-04-29","km":7.48},{"date":"2026-04-30","km":7.22},{"date":"2026-05-01","km":7.03},{"date":"2026-05-02","km":21.42},{"date":"2026-05-03","km":7.87},{"date":"2026-05-05","km":5.45},{"date":"2026-05-06","km":5.06},{"date":"2026-05-07","km":5.96},{"date":"2026-05-09","km":6.68},{"date":"2026-05-10","km":1.0},{"date":"2026-05-11","km":5.42},{"date":"2026-05-12","km":10.76},{"date":"2026-05-13","km":8.01},{"date":"2026-05-14","km":6.35}];
+
+const allActivities = [{"date":"2025-01-01","name":"Helsinki Walking","mod":"Walk","km":1.26,"dur":"0:15","elev":21,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-01-02","name":"Helsinki Running","mod":"Road","km":3.37,"dur":"0:19","elev":25,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-04","name":"Helsinki Running","mod":"Road","km":15.2,"dur":"2:00","elev":164,"purpose":"Long","pc":"#2196F3"},{"date":"2025-01-05","name":"Helsinki Running","mod":"Road","km":7.04,"dur":"0:36","elev":46,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-01-06","name":"Vantaa Trail Running","mod":"Trail","km":15.58,"dur":"2:30","elev":440,"purpose":"Long","pc":"#2196F3"},{"date":"2025-01-08","name":"Helsinki Trail Running","mod":"Trail","km":6.49,"dur":"0:42","elev":75,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-09","name":"Helsinki Running","mod":"Road","km":7.2,"dur":"0:51","elev":66,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-10","name":"Helsinki Trail Running","mod":"Trail","km":5.99,"dur":"0:35","elev":74,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-01-11","name":"Helsinki Trail Running","mod":"Trail","km":4.62,"dur":"1:00","elev":60,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-12","name":"Espoo Trail Running","mod":"Trail","km":5.38,"dur":"2:02","elev":595,"purpose":"Long","pc":"#2196F3"},{"date":"2025-01-15","name":"Helsinki Trail Running","mod":"Trail","km":9.37,"dur":"1:03","elev":109,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-16","name":"Helsinki - Base","mod":"Road","km":5.49,"dur":"0:32","elev":38,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-17","name":"Helsinki Running","mod":"Road","km":8.43,"dur":"0:59","elev":82,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-18","name":"Helsinki Running","mod":"Road","km":7.51,"dur":"0:39","elev":109,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-01-19","name":"Helsinki Trail Running","mod":"Trail","km":10.6,"dur":"1:38","elev":267,"purpose":"Long","pc":"#2196F3"},{"date":"2025-01-19","name":"Helsinki Walking","mod":"Walk","km":8.55,"dur":"2:20","elev":118,"purpose":"Long","pc":"#2196F3"},{"date":"2025-01-22","name":"Helsinki Trail Running","mod":"Trail","km":8.0,"dur":"0:49","elev":91,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-23","name":"Helsinki Running","mod":"Road","km":10.01,"dur":"0:56","elev":111,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-25","name":"Helsinki Trail Running","mod":"Trail","km":8.66,"dur":"0:55","elev":89,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-26","name":"Helsinki Trail Running","mod":"Trail","km":13.47,"dur":"1:30","elev":164,"purpose":"Long","pc":"#2196F3"},{"date":"2025-01-28","name":"Helsinki Running","mod":"Road","km":5.2,"dur":"0:30","elev":55,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-01-30","name":"Helsinki - Tempo","mod":"Road","km":14.51,"dur":"1:19","elev":121,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-02-01","name":"Espoo Trail Running","mod":"Trail","km":10.67,"dur":"2:51","elev":569,"purpose":"Long","pc":"#2196F3"},{"date":"2025-02-02","name":"Helsinki Running","mod":"Road","km":10.01,"dur":"0:55","elev":46,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-04","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:22","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-02-05","name":"Helsinki Running","mod":"Road","km":7.78,"dur":"0:51","elev":87,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-08","name":"Helsinki Trail Running","mod":"Trail","km":7.64,"dur":"1:03","elev":282,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-02-09","name":"Kävely","mod":"Walk","km":0.0,"dur":"0:00","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-02-09","name":"Tuusula Trail Running","mod":"Trail","km":19.82,"dur":"2:12","elev":242,"purpose":"Long","pc":"#2196F3"},{"date":"2025-02-10","name":"Helsinki - Palautuminen","mod":"Trail","km":2.78,"dur":"0:19","elev":34,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-02-11","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:26","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-02-13","name":"Helsinki Trail Running","mod":"Trail","km":9.02,"dur":"0:59","elev":116,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-15","name":"Vantaa Cross Country Classic Skiing","mod":"XC Ski","km":6.28,"dur":"0:35","elev":113,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-02-15","name":"Vantaa Cross Country Skate Skiing","mod":"Skate Ski","km":3.48,"dur":"0:14","elev":26,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-02-16","name":"Espoo Trail Running","mod":"Trail","km":9.18,"dur":"3:00","elev":929,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-02-18","name":"Helsinki Trail Running","mod":"Trail","km":7.37,"dur":"0:51","elev":97,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-19","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:35","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-02-21","name":"Middelburg Running","mod":"Road","km":7.13,"dur":"0:46","elev":43,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-22","name":"Flushing Trail Running","mod":"Trail","km":11.39,"dur":"1:19","elev":252,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-23","name":"Middelburg - Peruskunto","mod":"Road","km":6.3,"dur":"0:36","elev":33,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-02-25","name":"Helsinki Running","mod":"Road","km":17.23,"dur":"1:48","elev":108,"purpose":"Long","pc":"#2196F3"},{"date":"2025-02-26","name":"Helsinki Running","mod":"Road","km":15.71,"dur":"1:38","elev":95,"purpose":"Long","pc":"#2196F3"},{"date":"2025-03-01","name":"Helsinki - Peruskunto","mod":"Trail","km":7.17,"dur":"0:40","elev":72,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-03-02","name":"Vantaa Trail Running","mod":"Trail","km":14.02,"dur":"2:13","elev":249,"purpose":"Long","pc":"#2196F3"},{"date":"2025-03-03","name":"Kuopio Cross Country Classic Skiing","mod":"XC Ski","km":10.14,"dur":"1:04","elev":122,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-03-04","name":"Kuopio Trail Running","mod":"Trail","km":13.36,"dur":"1:42","elev":362,"purpose":"Long","pc":"#2196F3"},{"date":"2025-03-04","name":"Tahko Laskettelu","mod":"Resort ski","km":21.15,"dur":"2:02","elev":2481,"purpose":"Long","pc":"#2196F3"},{"date":"2025-03-05","name":"Kuopio Cross Country Skate Skiing","mod":"Skate Ski","km":5.55,"dur":"0:36","elev":56,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-03-08","name":"Helsinki Trail Running","mod":"Trail","km":7.01,"dur":"0:57","elev":110,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-09","name":"Espoo Trail Running","mod":"Trail","km":10.02,"dur":"3:04","elev":903,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-03-11","name":"Helsinki Trail Running","mod":"Trail","km":6.52,"dur":"0:52","elev":78,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-13","name":"Helsinki - Kynnys","mod":"Road","km":8.65,"dur":"0:44","elev":46,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-03-14","name":"Helsinki Running","mod":"Road","km":7.4,"dur":"0:58","elev":63,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-14","name":"Helsinki Running","mod":"Road","km":9.42,"dur":"0:56","elev":48,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-15","name":"Helsinki Trail Running","mod":"Trail","km":8.57,"dur":"1:22","elev":606,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-16","name":"Helsinki Running","mod":"Road","km":10.85,"dur":"1:11","elev":76,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-18","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:29","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-03-19","name":"Helsinki Trail Running","mod":"Trail","km":8.01,"dur":"0:44","elev":78,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-03-21","name":"Helsinki Trail Running","mod":"Trail","km":7.72,"dur":"0:50","elev":82,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-22","name":"Helsinki Trail Running","mod":"Trail","km":15.02,"dur":"1:41","elev":197,"purpose":"Long","pc":"#2196F3"},{"date":"2025-03-23","name":"Helsinki Trail Running","mod":"Trail","km":17.4,"dur":"2:18","elev":205,"purpose":"Long","pc":"#2196F3"},{"date":"2025-03-25","name":"Helsinki Trail Running","mod":"Trail","km":8.17,"dur":"1:09","elev":127,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-27","name":"Helsinki Running","mod":"Road","km":9.28,"dur":"0:52","elev":52,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-28","name":"Helsinki Walking","mod":"Walk","km":4.45,"dur":"1:05","elev":66,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-03-29","name":"Helsinki Trail Running","mod":"Trail","km":10.14,"dur":"1:07","elev":149,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-03-30","name":"Helsinki Trail Running","mod":"Trail","km":10.67,"dur":"1:05","elev":164,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-03-31","name":"Cardio","mod":"Strength","km":null,"dur":"0:47","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-04-02","name":"Prague Running","mod":"Road","km":7.42,"dur":"0:50","elev":47,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-04-04","name":"Helsinki - Anaerobinen","mod":"Road","km":8.94,"dur":"0:50","elev":39,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-04-05","name":"Espoo Trail Running","mod":"Trail","km":14.71,"dur":"4:02","elev":1114,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-04-08","name":"Helsinki Running","mod":"Road","km":8.74,"dur":"0:55","elev":47,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-04-10","name":"Helsinki Trail Running","mod":"Trail","km":14.23,"dur":"2:20","elev":1344,"purpose":"Long","pc":"#2196F3"},{"date":"2025-04-11","name":"Kauniainen Trail Running","mod":"Trail","km":7.22,"dur":"1:36","elev":880,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-04-12","name":"Vihti Polkujuoksu","mod":"Trail","km":15.22,"dur":"2:25","elev":1084,"purpose":"Long","pc":"#2196F3"},{"date":"2025-04-13","name":"Espoo Polkujuoksu","mod":"Trail","km":12.38,"dur":"2:29","elev":1338,"purpose":"Long","pc":"#2196F3"},{"date":"2025-04-18","name":"Hartola Polkujuoksu","mod":"Trail","km":14.01,"dur":"1:23","elev":53,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-04-19","name":"Hartola Juoksu","mod":"Road","km":10.85,"dur":"1:23","elev":48,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-04-21","name":"Helsinki - Kynnys","mod":"Road","km":6.93,"dur":"0:37","elev":45,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-04-23","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:30","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-04-24","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.5,"dur":"0:47","elev":89,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-04-26","name":"Helsinki Polkujuoksu","mod":"Trail","km":12.42,"dur":"1:55","elev":559,"purpose":"Long","pc":"#2196F3"},{"date":"2025-04-27","name":"Helsinki Trail Running","mod":"Trail","km":30.42,"dur":"4:36","elev":589,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-04-29","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.02,"dur":"1:06","elev":131,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-01","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.17,"dur":"1:41","elev":507,"purpose":"Long","pc":"#2196F3"},{"date":"2025-05-03","name":"Espoo Polkujuoksu","mod":"Trail","km":21.96,"dur":"3:40","elev":552,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-05-04","name":"Helsinki - intervalli 7x2 max","mod":"Road","km":7.48,"dur":"0:40","elev":50,"purpose":"Intervals","pc":"#F44336"},{"date":"2025-05-07","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:28","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-05-08","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.06,"dur":"1:09","elev":153,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-10","name":"Helsinki - Pitkä juoksu","mod":"Trail","km":15.54,"dur":"1:32","elev":149,"purpose":"Long","pc":"#2196F3"},{"date":"2025-05-11","name":"Helsinki - Peruskunto","mod":"Trail","km":6.97,"dur":"0:42","elev":37,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-13","name":"Helsinki - Kynnys","mod":"Road","km":9.71,"dur":"0:53","elev":40,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-05-14","name":"Helsinki Juoksu","mod":"Road","km":6.78,"dur":"1:18","elev":19,"purpose":"Intervals","pc":"#F44336"},{"date":"2025-05-17","name":"Helsinki Polkujuoksu","mod":"Trail","km":9.57,"dur":"1:05","elev":154,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-18","name":"Helsinki Polkujuoksu","mod":"Trail","km":13.34,"dur":"1:22","elev":119,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-21","name":"Helsinki Monilaji","mod":"Multi-sport","km":16.02,"dur":"1:29","elev":453,"purpose":"Long","pc":"#2196F3"},{"date":"2025-05-22","name":"Helsinki - Kynnys","mod":"Road","km":9.22,"dur":"0:50","elev":62,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-05-25","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.46,"dur":"1:00","elev":135,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-26","name":"Helsinki Juoksu","mod":"Road","km":11.11,"dur":"1:20","elev":88,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-05-31","name":"Helsinki Kävely","mod":"Walk","km":3.37,"dur":"0:46","elev":41,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-06-02","name":"Helsinki - Peruskunto","mod":"Trail","km":6.46,"dur":"0:39","elev":49,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-06-03","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.75,"dur":"1:06","elev":377,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-06-04","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:37","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-06-05","name":"Helsinki - Tempo","mod":"Road","km":13.06,"dur":"1:12","elev":92,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-06-07","name":"Helsinki Polkujuoksu","mod":"Trail","km":15.89,"dur":"2:48","elev":1202,"purpose":"Long","pc":"#2196F3"},{"date":"2025-06-08","name":"Vantaa Polkujuoksu","mod":"Trail","km":15.21,"dur":"2:23","elev":356,"purpose":"Long","pc":"#2196F3"},{"date":"2025-06-15","name":"Les Houches Polkujuoksu","mod":"Trail","km":29.68,"dur":"7:05","elev":2348,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-06-16","name":"Bourg-Saint-Maurice Polkujuoksu","mod":"Trail","km":39.24,"dur":"9:38","elev":2405,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-06-17","name":"Courmayeur Polkujuoksu","mod":"Trail","km":44.61,"dur":"8:30","elev":1914,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-06-18","name":"Orsières Polkujuoksu","mod":"Trail","km":39.46,"dur":"9:43","elev":2537,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-06-29","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.01,"dur":"1:14","elev":138,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-06-30","name":"Helsinki Sähköpyöräily maastossa","mod":"Cycling","km":10.01,"dur":"0:26","elev":78,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-06-30","name":"Helsinki Sähköpyöräily maastossa","mod":"Cycling","km":9.24,"dur":"0:25","elev":59,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-07-04","name":"Flushing Running","mod":"Road","km":12.54,"dur":"1:13","elev":60,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-07-05","name":"Flushing Juoksu","mod":"Road","km":11.62,"dur":"1:07","elev":47,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-07-07","name":"Flushing Polkujuoksu","mod":"Trail","km":14.52,"dur":"1:39","elev":385,"purpose":"Long","pc":"#2196F3"},{"date":"2025-07-08","name":"Middelburg Juoksu","mod":"Road","km":5.15,"dur":"0:32","elev":39,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-07-10","name":"Helsinki Polkujuoksu","mod":"Trail","km":11.24,"dur":"1:57","elev":891,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-07-10","name":"Helsinki Polkujuoksu","mod":"Trail","km":11.24,"dur":"1:57","elev":891,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-07-12","name":"Helsinki Juoksu","mod":"Road","km":15.45,"dur":"1:55","elev":100,"purpose":"Long","pc":"#2196F3"},{"date":"2025-07-14","name":"Hartola Juoksu","mod":"Road","km":8.01,"dur":"0:47","elev":66,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-07-19","name":"Helsinki Juoksu","mod":"Road","km":11.5,"dur":"1:09","elev":93,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-07-22","name":"Hamina Polkujuoksu","mod":"Trail","km":2.26,"dur":"0:20","elev":27,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-07-22","name":"Kotka Juoksu","mod":"Road","km":9.19,"dur":"1:15","elev":192,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-07-26","name":"Helsinki - Peruskunto","mod":"Trail","km":10.02,"dur":"1:00","elev":99,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-07-29","name":"Helsinki Polkujuoksu","mod":"Trail","km":9.28,"dur":"1:10","elev":322,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-07-31","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.01,"dur":"1:24","elev":171,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-08-02","name":"Helsinki Twilight Run","mod":"Road","km":10.06,"dur":"0:48","elev":44,"purpose":"Intervals","pc":"#F44336"},{"date":"2025-08-03","name":"Helsinki Polkujuoksu","mod":"Trail","km":20.04,"dur":"3:07","elev":395,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-08-06","name":"Helsinki Polkujuoksu","mod":"Trail","km":6.32,"dur":"0:57","elev":230,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-08-08","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.02,"dur":"1:03","elev":144,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-08-10","name":"Helsinki Polkujuoksu","mod":"Trail","km":20.01,"dur":"2:16","elev":312,"purpose":"Long","pc":"#2196F3"},{"date":"2025-08-12","name":"Helsinki Polkujuoksu","mod":"Trail","km":12.23,"dur":"1:31","elev":240,"purpose":"Long","pc":"#2196F3"},{"date":"2025-08-15","name":"Helsinki Polkujuoksu","mod":"Trail","km":5.5,"dur":"0:30","elev":67,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-08-16","name":"Sipoo Kävely","mod":"Walk","km":4.94,"dur":"1:09","elev":48,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-08-17","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.73,"dur":"1:44","elev":408,"purpose":"Long","pc":"#2196F3"},{"date":"2025-08-20","name":"Helsinki - Kynnys","mod":"Road","km":7.04,"dur":"0:37","elev":37,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-08-21","name":"Helsinki - Peruskunto","mod":"Trail","km":6.03,"dur":"0:36","elev":71,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-08-22","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:30","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-08-23","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.19,"dur":"1:01","elev":158,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-08-24","name":"Kerava Polkujuoksu","mod":"Trail","km":34.03,"dur":"5:03","elev":660,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-08-27","name":"Helsinki Polkujuoksu","mod":"Trail","km":3.95,"dur":"0:29","elev":38,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-08-29","name":"Helsinki - Peruskunto","mod":"Road","km":8.39,"dur":"0:48","elev":91,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-09-01","name":"Helsinki - Peruskunto","mod":"Road","km":16.38,"dur":"1:36","elev":85,"purpose":"Long","pc":"#2196F3"},{"date":"2025-09-03","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.87,"dur":"0:58","elev":300,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-09-06","name":"Espoo Polkujuoksu","mod":"Trail","km":42.89,"dur":"6:17","elev":1085,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-09-08","name":"Helsinki Kävely","mod":"Walk","km":4.18,"dur":"0:57","elev":52,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-09-10","name":"Helsinki Juoksu","mod":"Road","km":5.01,"dur":"0:36","elev":49,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-09-13","name":"Helsinki Polkujuoksu","mod":"Trail","km":12.07,"dur":"1:53","elev":250,"purpose":"Long","pc":"#2196F3"},{"date":"2025-09-14","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.51,"dur":"1:18","elev":144,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-09-17","name":"Helsinki Juoksu","mod":"Road","km":2.91,"dur":"0:19","elev":28,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-09-20","name":"Bled Polkujuoksu","mod":"Trail","km":78.38,"dur":"16:42","elev":3966,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-09-28","name":"Helsinki Kävely","mod":"Walk","km":5.33,"dur":"1:20","elev":72,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-09-30","name":"Pettenasco Polkujuoksu","mod":"Trail","km":8.69,"dur":"1:13","elev":381,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-10-02","name":"Pettenasco Kävely","mod":"Walk","km":6.1,"dur":"1:04","elev":170,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-10-03","name":"Helsinki Juoksu","mod":"Road","km":6.81,"dur":"0:41","elev":76,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-10-05","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.07,"dur":"1:32","elev":235,"purpose":"Long","pc":"#2196F3"},{"date":"2025-10-09","name":"Helsinki - Peruskunto","mod":"Trail","km":6.93,"dur":"0:43","elev":75,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-10-12","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.79,"dur":"1:30","elev":318,"purpose":"Long","pc":"#2196F3"},{"date":"2025-10-14","name":"Helsinki - Kynnys","mod":"Road","km":7.52,"dur":"0:40","elev":52,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-10-17","name":"Jämsä Polkujuoksu","mod":"Trail","km":13.37,"dur":"1:28","elev":364,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-10-18","name":"Jämsä Kävely","mod":"Walk","km":6.78,"dur":"1:26","elev":188,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-10-18","name":"Jämsä Polkujuoksu","mod":"Trail","km":5.99,"dur":"0:51","elev":184,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-10-22","name":"Helsinki Polkujuoksu","mod":"Trail","km":2.52,"dur":"0:22","elev":109,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-10-23","name":"Helsinki Juoksu","mod":"Road","km":6.37,"dur":"0:56","elev":6,"purpose":"Intervals","pc":"#F44336"},{"date":"2025-10-25","name":"Cardio","mod":"Strength","km":null,"dur":"1:02","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-10-26","name":"Helsinki Juoksu","mod":"Road","km":5.29,"dur":"0:34","elev":15,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-10-29","name":"Helsinki Juoksu","mod":"Road","km":15.08,"dur":"1:27","elev":91,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-11-02","name":"Helsinki Polkujuoksu","mod":"Trail","km":20.06,"dur":"2:33","elev":323,"purpose":"Long","pc":"#2196F3"},{"date":"2025-11-04","name":"Helsinki Polkujuoksu","mod":"Trail","km":4.0,"dur":"0:30","elev":50,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-11-06","name":"Helsinki - Kynnys","mod":"Road","km":6.64,"dur":"0:36","elev":29,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-11-08","name":"Hartola Juoksu","mod":"Road","km":7.7,"dur":"0:52","elev":62,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-10","name":"Helsinki Juoksu","mod":"Road","km":7.38,"dur":"0:50","elev":33,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-15","name":"Cardio","mod":"Strength","km":null,"dur":"1:03","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2025-11-15","name":"Helsinki Polkujuoksu","mod":"Trail","km":6.2,"dur":"0:48","elev":27,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-16","name":"Helsinki Polkujuoksu","mod":"Trail","km":6.82,"dur":"1:02","elev":222,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-19","name":"Helsinki Polkujuoksu","mod":"Trail","km":5.4,"dur":"0:36","elev":66,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-20","name":"Helsinki - Kynnys","mod":"Road","km":8.31,"dur":"0:44","elev":42,"purpose":"Intervals","pc":"#F44336"},{"date":"2025-11-23","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.22,"dur":"1:20","elev":526,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-25","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.34,"dur":"0:49","elev":89,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-29","name":"Helsinki - Pitkä juoksu","mod":"Road","km":10.87,"dur":"1:05","elev":137,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-11-30","name":"Helsinki - Peruskunto","mod":"Road","km":7.55,"dur":"0:48","elev":91,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-01","name":"Helsinki - Peruskunto","mod":"Road","km":5.76,"dur":"0:35","elev":29,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-03","name":"Helsinki Juoksu","mod":"Road","km":10.84,"dur":"1:19","elev":77,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-04","name":"Helsinki Kävely","mod":"Walk","km":1.33,"dur":"0:25","elev":5,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-12-06","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.57,"dur":"0:54","elev":100,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-07","name":"Helsinki Polkujuoksu","mod":"Trail","km":22.0,"dur":"2:40","elev":250,"purpose":"Long","pc":"#2196F3"},{"date":"2025-12-11","name":"Helsinki - Palautuminen","mod":"Trail","km":4.88,"dur":"0:34","elev":43,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-13","name":"Helsinki Juoksu","mod":"Road","km":8.01,"dur":"0:44","elev":105,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-12-14","name":"Helsinki Juoksu","mod":"Road","km":16.73,"dur":"1:49","elev":154,"purpose":"Long","pc":"#2196F3"},{"date":"2025-12-17","name":"Helsinki - Tempo","mod":"Road","km":10.42,"dur":"0:57","elev":40,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-12-21","name":"Adeje Juoksu","mod":"Road","km":12.26,"dur":"1:38","elev":355,"purpose":"Tempo","pc":"#FF9800"},{"date":"2025-12-22","name":"Adeje Polkujuoksu","mod":"Trail","km":17.34,"dur":"4:11","elev":1104,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-12-23","name":"Adeje Juoksu","mod":"Road","km":5.01,"dur":"0:36","elev":112,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-23","name":"Allasuinti","mod":"Swim","km":0.25,"dur":"0:08","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-12-24","name":"Adeje Running","mod":"Road","km":8.4,"dur":"1:12","elev":371,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-24","name":"Pool Swim","mod":"Swim","km":0.5,"dur":"0:17","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2025-12-25","name":"Pool Swim","mod":"Swim","km":0.6,"dur":"0:21","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2025-12-26","name":"La Orotava Polkujuoksu","mod":"Trail","km":16.42,"dur":"5:11","elev":1617,"purpose":"Race sim","pc":"#673AB7"},{"date":"2025-12-28","name":"Helsinki Trail Running","mod":"Trail","km":8.76,"dur":"0:58","elev":123,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-29","name":"Esport Arena VO2 Max","mod":"Road","km":8.26,"dur":"0:46","elev":0,"purpose":"Base","pc":"#4CAF50"},{"date":"2025-12-31","name":"Helsinki Juoksu","mod":"Road","km":6.37,"dur":"0:41","elev":15,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-02","name":"Helsinki Juoksu","mod":"Road","km":5.74,"dur":"0:41","elev":86,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-03","name":"Helsinki - Alue 3 30 min","mod":"Road","km":7.83,"dur":"0:41","elev":47,"purpose":"Intervals","pc":"#F44336"},{"date":"2026-01-04","name":"Raatamo 3h Jättäri","mod":"Trail","km":17.04,"dur":"2:42","elev":1058,"purpose":"Intervals","pc":"#F44336"},{"date":"2026-01-06","name":"Helsinki - Peruskunto","mod":"Trail","km":5.41,"dur":"0:33","elev":69,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-08","name":"Vantaa Luisteluhiihto","mod":"Skate Ski","km":5.48,"dur":"0:31","elev":90,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-01-10","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.91,"dur":"1:54","elev":256,"purpose":"Long","pc":"#2196F3"},{"date":"2026-01-11","name":"Vantaa Perinteinen hiihto","mod":"XC Ski","km":10.52,"dur":"1:00","elev":216,"purpose":"Intervals","pc":"#F44336"},{"date":"2026-01-13","name":"Helsinki Juoksu","mod":"Road","km":5.14,"dur":"0:31","elev":63,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-14","name":"Helsinki Luisteluhiihto","mod":"Skate Ski","km":10.97,"dur":"0:55","elev":123,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-01-16","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.36,"dur":"0:56","elev":107,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-17","name":"Helsinki Perinteinen hiihto","mod":"XC Ski","km":10.53,"dur":"0:59","elev":142,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-01-18","name":"Jättäri 2h","mod":"Trail","km":13.31,"dur":"2:01","elev":804,"purpose":"Long","pc":"#2196F3"},{"date":"2026-01-21","name":"Helsinki Perinteinen hiihto","mod":"XC Ski","km":5.34,"dur":"0:40","elev":45,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-01-22","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.26,"dur":"0:54","elev":99,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-24","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.04,"dur":"1:04","elev":107,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-01-25","name":"Jättäri 1K 15km","mod":"Trail","km":15.09,"dur":"2:28","elev":1025,"purpose":"Long","pc":"#2196F3"},{"date":"2026-01-28","name":"Helsinki Luisteluhiihto","mod":"Skate Ski","km":12.79,"dur":"1:03","elev":151,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-01-29","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.46,"dur":"0:56","elev":85,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-01","name":"Helsinki Jääjuoksu","mod":"Trail","km":10.81,"dur":"1:18","elev":106,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-02","name":"Helsinki Polkujuoksu","mod":"Trail","km":9.01,"dur":"1:01","elev":104,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-05","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.9,"dur":"1:12","elev":50,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-07","name":"Helsinki Polkujuoksu","mod":"Trail","km":14.02,"dur":"1:50","elev":45,"purpose":"Long","pc":"#2196F3"},{"date":"2026-02-08","name":"Allasuinti","mod":"Swim","km":1.55,"dur":"0:52","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-02-08","name":"Helsinki Luisteluhiihto","mod":"Skate Ski","km":10.01,"dur":"1:12","elev":7,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-02-08","name":"Järvenpää Kävely","mod":"Walk","km":4.09,"dur":"0:58","elev":12,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-09","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.26,"dur":"0:52","elev":95,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-10","name":"Helsinki Perinteinen hiihto","mod":"XC Ski","km":5.5,"dur":"0:51","elev":6,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-02-11","name":"Helsinki Polkujuoksu","mod":"Trail","km":7.01,"dur":"0:40","elev":70,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-02-14","name":"Las Palmas of Gran Canaria Juoksu","mod":"Road","km":9.01,"dur":"1:06","elev":239,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-15","name":"Allasuinti","mod":"Swim","km":0.22,"dur":"0:09","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-15","name":"Las Palmas of Gran Canaria Avovesiuinti","mod":"Swim","km":0.34,"dur":"0:13","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-15","name":"Las Palmas of Gran Canaria Juoksu","mod":"Road","km":12.62,"dur":"1:27","elev":168,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-15","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:09","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-02-16","name":"Pool Swim","mod":"Swim","km":0.5,"dur":"0:15","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-16","name":"Pool Swim","mod":"Swim","km":0.36,"dur":"0:14","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-16","name":"Tejeda Trail Running","mod":"Trail","km":20.35,"dur":"3:37","elev":1058,"purpose":"Race sim","pc":"#673AB7"},{"date":"2026-02-17","name":"Pool Swim","mod":"Swim","km":0.22,"dur":"0:10","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-17","name":"Pool Swim","mod":"Swim","km":0.36,"dur":"0:16","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-18","name":"Allasuinti","mod":"Swim","km":0.5,"dur":"0:19","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-18","name":"Gáldar Polkujuoksu","mod":"Trail","km":7.69,"dur":"1:05","elev":296,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-18","name":"Las Palmas of Gran Canaria Juoksu","mod":"Road","km":8.16,"dur":"0:50","elev":117,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-02-19","name":"Allasuinti","mod":"Swim","km":0.4,"dur":"0:14","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-19","name":"Vega de San Mateo Polkujuoksu","mod":"Trail","km":21.42,"dur":"3:46","elev":1343,"purpose":"Race sim","pc":"#673AB7"},{"date":"2026-02-20","name":"Arucas Polkujuoksu","mod":"Trail","km":8.34,"dur":"1:39","elev":427,"purpose":"Long","pc":"#2196F3"},{"date":"2026-02-20","name":"Las Palmas of Gran Canaria Kävely","mod":"Walk","km":5.42,"dur":"1:03","elev":11,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-02-21","name":"Allasuinti","mod":"Swim","km":1.0,"dur":"0:33","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-02-22","name":"Sipoo Polkujuoksu","mod":"Trail","km":10.48,"dur":"2:10","elev":296,"purpose":"Long","pc":"#2196F3"},{"date":"2026-02-25","name":"Helsinki Polkujuoksu","mod":"Trail","km":10.01,"dur":"1:06","elev":95,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-02-26","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:48","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-03-01","name":"Esport 2 x sisärata","mod":"Road","km":0.78,"dur":"0:05","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-03-01","name":"Esport Arena 3 x 10 min Z4","mod":"Road","km":11.94,"dur":"1:06","elev":0,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-03-03","name":"Jämsä Perinteinen hiihto","mod":"XC Ski","km":15.33,"dur":"1:35","elev":162,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-03-04","name":"Helsinki Kävely","mod":"Walk","km":1.63,"dur":"0:19","elev":24,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-03-05","name":"Helsinki Polkujuoksu","mod":"Trail","km":8.42,"dur":"0:56","elev":85,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-03-12","name":"Kuopio Kävely","mod":"Walk","km":2.65,"dur":"0:41","elev":40,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-13","name":"Kuopio Kävely","mod":"Walk","km":3.0,"dur":"0:56","elev":30,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-14","name":"Kuopio Kävely","mod":"Walk","km":9.24,"dur":"2:21","elev":317,"purpose":"Long","pc":"#2196F3"},{"date":"2026-03-21","name":"Helsinki Kävely","mod":"Walk","km":5.46,"dur":"1:07","elev":51,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-22","name":"Helsinki Kävely","mod":"Walk","km":5.51,"dur":"1:40","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-24","name":"Helsinki - 20 min Z1","mod":"Road","km":2.43,"dur":"0:20","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-03-26","name":"Helsinki - 20 min Z1","mod":"Road","km":2.54,"dur":"0:20","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-03-27","name":"Helsinki Kävely","mod":"Walk","km":4.78,"dur":"1:24","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-28","name":"Helsinki - 35 min Z1","mod":"Road","km":4.54,"dur":"0:35","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-03-29","name":"Allasuinti","mod":"Swim","km":0.5,"dur":"0:12","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-29","name":"Allasuinti","mod":"Swim","km":0.5,"dur":"0:15","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-29","name":"Allasuinti","mod":"Swim","km":0.23,"dur":"0:08","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-03-29","name":"Helsinki - 20 min Z1","mod":"Road","km":2.86,"dur":"0:21","elev":0,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-03-31","name":"Helsinki Juoksu","mod":"Road","km":7.0,"dur":"0:52","elev":0,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-02","name":"Helsinki - [Coach] Perusta-juoksu 50 min Z1","mod":"Road","km":6.55,"dur":"0:50","elev":45,"purpose":"Recovery","pc":"#9E9E9E"},{"date":"2026-04-03","name":"Hartola Juoksu","mod":"Road","km":6.74,"dur":"0:51","elev":55,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-04","name":"Hartola Juoksu","mod":"Road","km":16.01,"dur":"2:02","elev":65,"purpose":"Long","pc":"#2196F3"},{"date":"2026-04-06","name":"Helsinki Juoksu","mod":"Road","km":7.06,"dur":"0:51","elev":63,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-07","name":"[Coach] Voimaharjoittelu 30 min","mod":"Strength","km":null,"dur":"0:30","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-04-08","name":"Helsinki - [Coach] Aerobinen pohja 60 min Z","mod":"Road","km":7.54,"dur":"1:03","elev":78,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-09","name":"Helsinki - [Coach] Tempo 45 min Z4","mod":"Road","km":8.01,"dur":"0:46","elev":47,"purpose":"Intervals","pc":"#F44336"},{"date":"2026-04-10","name":"Helsinki Kävely","mod":"Walk","km":3.38,"dur":"0:46","elev":29,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-11","name":"Helsinki Polkujuoksu","mod":"Trail","km":6.53,"dur":"1:06","elev":170,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-12","name":"Allasuinti","mod":"Swim","km":0.55,"dur":"0:14","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-12","name":"Allasuinti","mod":"Swim","km":0.5,"dur":"0:14","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-12","name":"Allasuinti","mod":"Swim","km":0.1,"dur":"0:04","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-12","name":"Trails of Espoo","mod":"Trail","km":15.64,"dur":"2:17","elev":382,"purpose":"Long","pc":"#2196F3"},{"date":"2026-04-14","name":"Helsinki - [Coach] Aerobinen pohja 55 min Z","mod":"Road","km":7.58,"dur":"0:56","elev":35,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-14","name":"[Coach] Voima 30 min – koko ke","mod":"Strength","km":null,"dur":"0:24","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-04-15","name":"Helsinki Polkujuoksu","mod":"Trail","km":5.1,"dur":"0:40","elev":55,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-16","name":"Helsinki - [Coach] Helppo juoksu 50 min Z1","mod":"Road","km":6.83,"dur":"0:52","elev":41,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-17","name":"Voimaharjoittelu","mod":"Strength","km":null,"dur":"0:32","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-04-18","name":"Helsinki - [Coach] Pitkä polkujuoksu 150 m","mod":"Trail","km":23.63,"dur":"3:25","elev":392,"purpose":"Race sim","pc":"#673AB7"},{"date":"2026-04-19","name":"Allasuinti","mod":"Swim","km":0.48,"dur":"0:13","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-19","name":"Allasuinti","mod":"Swim","km":0.5,"dur":"0:16","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-19","name":"Allasuinti","mod":"Swim","km":0.13,"dur":"0:06","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-19","name":"Helsinki - [Coach] Helppo palautuminen 55 m","mod":"Road","km":10.13,"dur":"1:17","elev":57,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-20","name":"Helsinki Kävely","mod":"Walk","km":3.43,"dur":"0:45","elev":58,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-21","name":"Helsinki - [Coach] Helppo juoksu 50 min Z1","mod":"Trail","km":8.09,"dur":"1:09","elev":124,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-21","name":"[Coach] Voimaharjoittelu 30 min","mod":"Strength","km":0.0,"dur":"0:30","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-04-22","name":"Helsinki - [Coach] Mäkiharjoitus 55 min Z3","mod":"Trail","km":5.4,"dur":"0:40","elev":265,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-04-23","name":"Helsinki - [Coach] Helppo juoksu 50 min Z1","mod":"Trail","km":5.46,"dur":"0:53","elev":395,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-24","name":"Voimaharjoittelu","mod":"Strength","km":0.0,"dur":"0:22","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-04-25","name":"Helsinki - [Coach] Aerobinen + kynnys 70 mi","mod":"Trail","km":11.92,"dur":"1:19","elev":108,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-26","name":"Allasuinti","mod":"Swim","km":1.53,"dur":"0:42","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-04-26","name":"Helsinki - [Coach] Pitkä polkujuoksu 33 km","mod":"Trail","km":33.74,"dur":"4:39","elev":753,"purpose":"Race sim","pc":"#673AB7"},{"date":"2026-04-28","name":"Helsinki - [Coach] Helppo juoksu 55 min Z1-","mod":"Road","km":8.2,"dur":"0:55","elev":89,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-04-29","name":"Helsinki - [Coach] Tempojuoksu 55 min Z4","mod":"Trail","km":7.48,"dur":"0:57","elev":280,"purpose":"Tempo","pc":"#FF9800"},{"date":"2026-04-30","name":"Helsinki - [Coach] Helppo juoksu 50 min Z1","mod":"Road","km":7.22,"dur":"0:50","elev":73,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-01","name":"Helsinki Juoksu","mod":"Road","km":7.03,"dur":"0:55","elev":54,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-02","name":"Kuusijärvi - Aurinkolahti 3h","mod":"Trail","km":21.42,"dur":"3:01","elev":451,"purpose":"Race sim","pc":"#673AB7"},{"date":"2026-05-03","name":"Allasuinti","mod":"Swim","km":1.3,"dur":"0:33","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-05-03","name":"Helsinki - [Coach] Helppo palautuminen 45 m","mod":"Road","km":6.57,"dur":"0:46","elev":50,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-05","name":"Padel","mod":"Strength","km":0.13,"dur":"0:50","elev":null,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-05","name":"Tasotesti vierumäellä","mod":"Road","km":5.32,"dur":"0:40","elev":0,"purpose":"Intervals","pc":"#F44336"},{"date":"2026-05-06","name":"Helsinki - [Coach] Helppo juoksu 40 min Z1","mod":"Trail","km":5.06,"dur":"0:42","elev":67,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-07","name":"Helsinki - [Coach] Helppo juoksu 40 min Z1","mod":"Road","km":5.96,"dur":"0:40","elev":36,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-07","name":"[Coach] Voimaharjoittelu 30 min","mod":"Strength","km":0.0,"dur":"0:27","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-05-09","name":"Helsinki - [Coach] Helppo polkujuoksu 55 mi","mod":"Trail","km":6.68,"dur":"0:58","elev":103,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-10","name":"Allasuinti","mod":"Swim","km":1.0,"dur":"0:28","elev":0,"purpose":"Cross","pc":"#00BCD4"},{"date":"2026-05-11","name":"Helsinki - [Coach] Helppo juoksu 35 min Z1","mod":"Road","km":5.42,"dur":"0:35","elev":21,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-12","name":"Helsinki - [Coach] Helppo juoksu 75 min Z1-","mod":"Trail","km":10.76,"dur":"1:16","elev":165,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-12","name":"[Coach] Voimaharjoittelu 30 min","mod":"Strength","km":0.0,"dur":"0:26","elev":null,"purpose":"Strength","pc":"#795548"},{"date":"2026-05-13","name":"Helsinki - [Coach] Mäkitoistot 5x4 min Z4","mod":"Trail","km":8.01,"dur":"0:52","elev":227,"purpose":"Intervals","pc":"#F44336"},{"date":"2026-05-14","name":"Helsinki - [Coach] Helppo juoksu 50 min Z1","mod":"Road","km":6.35,"dur":"0:52","elev":91,"purpose":"Base","pc":"#4CAF50"},{"date":"2026-05-14","name":"[Coach] Voimaharjoittelu 30 min","mod":"Strength","km":0.0,"dur":"0:30","elev":null,"purpose":"Strength","pc":"#795548"}];
+
+const TODAY = '2026-05-15';
+
+// ── UI state ────────────────────────────────────────────────────────────────
+let unit   = 'km';   // 'km' | 'hrs' | 'elev'
+let timeWin = 'all'; // 'all' | '3m' | '6m' | '12m'
+
+function cutoffDate(win) {
+  const t = new Date(TODAY);
+  // Snap to first of month so N-month window = exactly N monthly bars
+  if (win === '3m')  { t.setMonth(t.getMonth() - 2); t.setDate(1); return t.toISOString().slice(0,10); }
+  if (win === '6m')  { t.setMonth(t.getMonth() - 5); t.setDate(1); return t.toISOString().slice(0,10); }
+  if (win === '12m') { t.setMonth(t.getMonth() - 11); t.setDate(1); return t.toISOString().slice(0,10); }
+  return '2025-01-01';
+}
+
+// ══════════════════════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════════════════════
+function kmColor(km) {
+  if (km <= 0) return '#1a1a1a';
+  if (km < 8)  return '#1a3d1a';
+  if (km < 15) return '#2d6a2d';
+  if (km < 25) return '#4caf50';
+  if (km < 35) return '#81c784';
+  return '#673AB7';
+}
+
+(function buildCalendar() {
+  const grid = document.getElementById('calGrid');
+  const byDate = {};
+  calData.forEach(d => byDate[d.date] = d.km);
+
+  const jan1 = new Date('2025-01-01');
+  const dow = jan1.getDay();
+  const start = new Date(jan1);
+  start.setDate(jan1.getDate() - (dow === 0 ? 6 : dow - 1));
+  const end = new Date(TODAY);
+
+  let current = new Date(start);
+  let lastMonth = -1;
+  let weekCol = null;
+
+  while (current <= end) {
+    const isoDay = current.getDay() === 0 ? 6 : current.getDay() - 1;
+    if (isoDay === 0) {
+      const wrap = document.createElement('div');
+      wrap.className = 'cal-week-wrap';
+      const lbl = document.createElement('div');
+      lbl.className = 'cal-month-lbl';
+      const mo = current.getMonth();
+      if (mo !== lastMonth) {
+        const mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        lbl.textContent = mNames[mo] + (current.getFullYear()===2026 ? " '26" : mo===0 ? " '25" : '');
+        lastMonth = mo;
+      }
+      wrap.appendChild(lbl);
+      weekCol = document.createElement('div');
+      weekCol.className = 'cal-week';
+      wrap.appendChild(weekCol);
+      grid.appendChild(wrap);
+    }
+    const ds = current.toISOString().slice(0,10);
+    const km = byDate[ds] || 0;
+    const cell = document.createElement('div');
+    cell.className = 'cal-day';
+    cell.style.background = kmColor(km);
+    if (ds === TODAY) { cell.style.outline = '2px solid #fff'; cell.style.outlineOffset = '0px'; }
+    if (km > 0) cell.setAttribute('data-tip', `${ds} · ${km} km`);
+    else cell.setAttribute('data-tip', `${ds} · rest`);
+    if (weekCol) weekCol.appendChild(cell);
+    current.setDate(current.getDate() + 1);
+  }
+})();
+
+// ══════════════════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════════════════
+Chart.defaults.color = '#666';
+Chart.defaults.borderColor = '#1e1e1e';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 11;
+
+const weeklyChart  = new Chart(document.getElementById('weeklyChart'),  { type:'bar',  data:{labels:[],datasets:[]}, options: weeklyOpts() });
+const rollingChart = new Chart(document.getElementById('rollingChart'), { type:'line', data:{labels:[],datasets:[]}, options: rollingOpts() });
+const purposeChart = new Chart(document.getElementById('purposeChart'), { type:'bar',  data:{labels:[],datasets:[]}, options: purposeOpts() });
+const modalityChart= new Chart(document.getElementById('modalityChart'),{ type:'doughnut', data:{labels:[],datasets:[]}, options: modalityOpts() });
+
+function unitLabel() { return unit==='km'?'km':unit==='hrs'?'h':'m'; }
+function fmtVal(v)   { return unit==='elev' ? Math.round(v).toLocaleString() : v; }
+
+function weeklyOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    interaction:{ mode:'index', intersect:false },
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label: ctx => {
+      if (unit==='elev') return ` ${Math.round(ctx.raw).toLocaleString()} m`;
+      if (ctx.datasetIndex===0) return ` ${ctx.raw} ${ul}`;
+      return ` ${wkElev[ctx.dataIndex].toLocaleString()} m elev`;
+    }}}},
+    scales:{
+      x:{ grid:{display:false}, ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:14} },
+      y:{ grid:{color:'#1e1e1e'}, ticks:{callback: v => unit==='elev' ? Math.round(v).toLocaleString()+'m' : v+ul } },
+      y2:{ position:'right', grid:{display:false}, ticks:{callback: v => (v/1000).toFixed(1)+'k m'}, display: unit!=='elev' }
+    }
+  };
+}
+function rollingOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label: ctx => {
+      if (ctx.datasetIndex===0) return ` ${fmtVal(ctx.raw)} ${ul} (28 days)`;
+      return ` reference`;
+    }}}},
+    scales:{
+      x:{ grid:{display:false}, ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:10} },
+      y:{ grid:{color:'#1e1e1e'}, min:0, ticks:{callback: v => unit==='elev' ? Math.round(v).toLocaleString()+'m' : v+ul} }
+    }
+  };
+}
+function purposeOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom', labels:{boxWidth:9,padding:7,font:{size:10}}},
+              tooltip:{callbacks:{label: ctx => ` ${ctx.dataset.label}: ${fmtVal(ctx.raw)} ${ul}`}} },
+    scales:{
+      x:{ stacked:true, grid:{display:false} },
+      y:{ stacked:true, grid:{color:'#1e1e1e'}, ticks:{callback: v => unit==='elev' ? Math.round(v).toLocaleString()+'m' : v+ul} }
+    }
+  };
+}
+function modalityOpts() {
+  const ul = unitLabel();
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{position:'right', labels:{boxWidth:9,padding:5,font:{size:10}}},
+              tooltip:{callbacks:{label: ctx => {
+                const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                return ` ${ctx.label}: ${fmtVal(ctx.raw)} ${ul} (${Math.round(ctx.raw/total*100)}%)`;
+              }}} }
+  };
+}
+
+// ══════════════════════════════════════════════════════════
+// UPDATE LOGIC
+// ══════════════════════════════════════════════════════════
+function filterIdx(dates, cutoff) {
+  return dates.reduce((acc,d,i) => { if (d >= cutoff) acc.push(i); return acc; }, []);
+}
+
+function updateAll() {
+  const cut = cutoffDate(timeWin);
+
+  // ── weekly
+  const wi = filterIdx(wkDates, cut);
+  const wLabels = wi.map(i => wkDisplay[i]);
+  const wVals   = wi.map(i => unit==='km' ? wkKm[i] : unit==='hrs' ? wkHrs[i] : wkElev[i]);
+  const wElev2  = wi.map(i => wkElev[i]);
+  weeklyChart.data.labels = wLabels;
+  const wColors = wVals.map(v => unit==='km'
+    ? (v>=60?'#673AB7':v>=40?'#4CAF50':'#2d6a2d')
+    : unit==='hrs'
+    ? (v>=15?'#673AB7':v>=8?'#4CAF50':'#2d6a2d')
+    : (v>=2000?'#673AB7':v>=800?'#4CAF50':'#2d6a2d'));
+  weeklyChart.data.datasets = unit==='elev'
+    ? [{ label:'vertical', data:wVals, backgroundColor:wColors, borderWidth:0, yAxisID:'y' }]
+    : [
+        { label: unit==='km'?'km':'hrs', data:wVals, backgroundColor:wColors, borderWidth:0, yAxisID:'y' },
+        { label:'elev', data:wElev2, type:'line', borderColor:'#FF9800', backgroundColor:'transparent',
+          borderWidth:1.5, pointRadius:0, tension:0.3, yAxisID:'y2' }
+      ];
+  weeklyChart.options = weeklyOpts();
+  weeklyChart.update();
+
+  // ── rolling
+  const ri = filterIdx(rollDates, cut);
+  const rLabels = ri.map(i => rollLabels[i]);
+  const rVals   = ri.map(i => unit==='km' ? rollKm[i] : unit==='hrs' ? rollHrs[i] : rollElev[i]);
+  const refVal  = unit==='km' ? 200 : unit==='hrs' ? 28 : 4000; // 50km/wk equiv or 1000m/wk × 4
+  rollingChart.data.labels = rLabels;
+  rollingChart.data.datasets = [
+    { label:'rolling', data:rVals, borderColor:'#2196F3', backgroundColor:'rgba(33,150,243,0.08)',
+      borderWidth:2, pointRadius:0, fill:true, tension:0.3 },
+    { label:'ref', data:Array(rVals.length).fill(refVal), borderColor:'#333',
+      borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false }
+  ];
+  rollingChart.options = rollingOpts();
+  rollingChart.update();
+
+  // ── purpose mix
+  const mi = filterIdx(monthKeys, cut.slice(0,7));
+  const mLabels = mi.map(i => monthDisplay[i]);
+  const pSrc = unit==='km' ? purposeDsKm : unit==='hrs' ? purposeDsHrs : purposeDsElev;
+  const pDs = pSrc.map(ds => ({
+    ...ds, data: mi.map(i => ds.data[i] || 0)
+  })).filter(ds => ds.data.some(v=>v>0));
+  purposeChart.data.labels = mLabels;
+  purposeChart.data.datasets = pDs;
+  purposeChart.options = purposeOpts();
+  purposeChart.update();
+
+  // ── modality (respects time window)
+  const modColorMap = {
+    'Trail':'#4CAF50','Road':'#2196F3','XC Ski':'#00BCD4','Skate Ski':'#80DEEA',
+    'Walk':'#FFCC02','Cycling':'#FF9800','Swim':'#E91E63','Strength':'#795548',
+    'Multi-sport':'#9C27B0','Resort ski':'#B0BEC5'
+  };
+  const modOrder = ['Trail','Road','XC Ski','Skate Ski','Walk','Cycling','Swim','Strength','Multi-sport','Resort ski'];
+  const filteredActs = allActivities.filter(a => a.date >= cut && a.date <= TODAY);
+  const modTotals = {};
+  filteredActs.forEach(a => {
+    const m = a.mod || 'Other';
+    if (!modTotals[m]) modTotals[m] = {km:0, hrs:0, elev:0};
+    const parts = a.dur.split(':');
+    const actHrs = parseInt(parts[0]) + parseInt(parts[1])/60;
+    modTotals[m].km   += (a.km || 0);
+    modTotals[m].hrs  += actHrs;
+    modTotals[m].elev += (a.elev || 0);
+  });
+  const sortedMods = [...new Set([...modOrder, ...Object.keys(modTotals)])].filter(m => modTotals[m]);
+  const modFiltered = sortedMods.map(m => ({
+    l: m,
+    v: unit==='km' ? modTotals[m].km : unit==='hrs' ? modTotals[m].hrs : modTotals[m].elev,
+    c: modColorMap[m] || '#888'
+  })).filter(x => x.v > 0);
+  modalityChart.data.labels   = modFiltered.map(x=>x.l);
+  modalityChart.data.datasets = [{ data:modFiltered.map(x=>x.v), backgroundColor:modFiltered.map(x=>x.c), borderWidth:1, borderColor:'#0f1117' }];
+  modalityChart.options = modalityOpts();
+  modalityChart.update();
+
+  // ── titles
+  const uLabel = unit==='km' ? 'km' : unit==='hrs' ? 'hours' : 'vertical (m)';
+  document.getElementById('weeklyTitle').textContent  = `Weekly volume (${uLabel})`;
+  document.getElementById('rollingTitle').textContent = `Rolling 28-day load (${uLabel})`;
+  document.getElementById('purposeTitle').textContent = `Monthly purpose mix (${uLabel})`;
+  const modWinLabel = {'all':'All time','12m':'Last 12 mo','6m':'Last 6 mo','3m':'Last 3 mo'}[timeWin];
+  document.getElementById('modTitle').textContent     = `By sport — ${modWinLabel} (${uLabel})`;
+
+  // ── stats
+  const sessions = rawSessions.filter(s => s.date >= cut && s.date <= TODAY);
+  const totKm    = sessions.reduce((a,s)=>a+s.km,0);
+  const totHrs   = sessions.reduce((a,s)=>a+s.hrs,0);
+  const totElev  = sessions.reduce((a,s)=>a+s.elev,0);
+  const nWeeks   = wi.length || 1;
+  document.getElementById('s-sessions').textContent = sessions.length;
+  document.getElementById('s-km').textContent       = Math.round(totKm).toLocaleString() + ' km';
+  document.getElementById('s-hrs').textContent      = Math.round(totHrs) + ' h';
+  document.getElementById('s-elev').textContent     = Math.round(totElev).toLocaleString();
+  if (unit==='km') {
+    document.getElementById('s-wkavg').textContent = Math.round(totKm/nWeeks) + ' km';
+    document.getElementById('s-wkavg-lbl').textContent = 'Avg km / week';
+  } else if (unit==='hrs') {
+    document.getElementById('s-wkavg').textContent = (totHrs/nWeeks).toFixed(1) + ' h';
+    document.getElementById('s-wkavg-lbl').textContent = 'Avg hours / week';
+  } else {
+    document.getElementById('s-wkavg').textContent = Math.round(totElev/nWeeks).toLocaleString() + ' m';
+    document.getElementById('s-wkavg-lbl').textContent = 'Avg elev / week';
+  }
+
+  // ── window label
+  const labels = {'all':'All time (Jan 2025–)','12m':'Last 12 months','6m':'Last 6 months','3m':'Last 3 months'};
+  document.getElementById('windowLabel').textContent = labels[timeWin];
+
+  // ── activity table
+  renderTable();
+}
+
+// ══════════════════════════════════════════════════════════
+// CONTROLS
+// ══════════════════════════════════════════════════════════
+function setUnit(u) {
+  unit = u;
+  document.querySelectorAll('#unitBtns button').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(`'${u}'`)));
+  updateAll();
+}
+function setWindow(w) {
+  timeWin = w;
+  document.querySelectorAll('#windowBtns button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${w}'`));
+  });
+  updateAll();
+}
+
+// ══════════════════════════════════════════════════════════
+// ACTIVITY TABLE
+// ══════════════════════════════════════════════════════════
+let sortCol = 'date';
+let sortAsc = false;
+
+function parseDurMins(s) {
+  if (!s) return 0;
+  const p = s.split(':');
+  return parseInt(p[0]) * 60 + (parseInt(p[1]) || 0);
+}
+
+function renderTable() {
+  const cut = cutoffDate(timeWin);
+  let rows = allActivities.filter(a => a.date >= cut && a.date <= TODAY);
+
+  rows.sort((a, b) => {
+    let av, bv;
+    if (sortCol === 'dur') {
+      av = parseDurMins(a.dur); bv = parseDurMins(b.dur);
+      return sortAsc ? av - bv : bv - av;
+    }
+    if (sortCol === 'km' || sortCol === 'elev') {
+      av = a[sortCol] != null ? a[sortCol] : -1;
+      bv = b[sortCol] != null ? b[sortCol] : -1;
+      return sortAsc ? av - bv : bv - av;
+    }
+    av = (a[sortCol] || '').toString();
+    bv = (b[sortCol] || '').toString();
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+
+  document.getElementById('tableTitle').textContent = `${rows.length} activities`;
+  document.getElementById('actTbody').innerHTML = rows.map(a => `
+    <tr>
+      <td class="dim">${a.date}</td>
+      <td>${a.name}</td>
+      <td><span class="mod-badge">${a.mod}</span></td>
+      <td><span class="badge" style="background:${a.pc}22;color:${a.pc}">${a.purpose}</span></td>
+      <td class="num">${a.km != null ? a.km.toFixed(1) : '—'}</td>
+      <td class="num">${a.dur || '—'}</td>
+      <td class="num">${a.elev != null ? a.elev.toLocaleString() : '—'}</td>
+    </tr>`).join('');
+}
+
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = col !== 'date'; }
+  // update header arrows
+  document.querySelectorAll('table.act th').forEach(th => {
+    const c = th.getAttribute('onclick').replace("sortTable('","").replace("')","");
+    th.textContent = th.textContent.replace(/ [↑↓↕]$/,'') + (c === sortCol ? (sortAsc ? ' ↑' : ' ↓') : ' ↕');
+  });
+  renderTable();
+}
+
+// Initial render
+updateAll();
+</script>
+</body>
+</html>
