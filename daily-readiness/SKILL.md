@@ -41,9 +41,9 @@ Use the containing directory as **WORKSPACE**. All file references below are rel
 Tee ensin nopea tuoreustarkistus **ennen kuin haet mitään dataa**. Näin käyttäjä voi synkata laitteet ensin jos data puuttuu.
 
 ### 0a: Oura
-Read `WORKSPACE/oura-today.json` (jos tiedosto on olemassa). Tarkista `date`-kenttä:
-- `date` == tänään → Oura OK
-- `date` < tänään tai tiedosto puuttuu → **Oura-data puuttuu** (rengas ei ole synkroitu)
+Kutsu `mcp__oura__oura_daily_summary` parametrilla `{"date": "YYYY-MM-DD"}` (tänään).
+- Palauttaa datan → Oura OK
+- Palauttaa virheen tai tyhjän → **Oura-data puuttuu** (rengas ei ole synkroitu)
 
 ### 0b: Garmin live-data
 Kutsu `mcp__garmin__get_sleep_summary` parametrilla `{"date": "YYYY-MM-DD"}` (tänään). Tämä on kevyt kutsu (~350 B) jolla nähdään onko Garmin synkroitu.
@@ -99,10 +99,9 @@ Call these tools simultaneously, and also read both local files:
 5. **`mcp__garmin__get_stress_data`** with `{"date": "YYYY-MM-DD"}` (today) *(optional)*
    - Extracts: stress level if available
 
-6. **Read `WORKSPACE/oura-today.json` using the Read tool** *(already checked in Step 0a — reuse that read if cached, otherwise read now)*
+6. **`mcp__oura__oura_daily_summary`** — already called in Step 0a; reuse that result, do not call again.
    - Extracts: `readiness.score`, `readiness.contributors.body_temperature`, `readiness.temperature_deviation`, `readiness.temperature_trend_deviation`, `sleep.score`
-   - Freshness already verified in Step 0a. If stale or missing, skip Oura fields in the output card.
-   - **Do not call `mcp__oura__` tools** — the file replaces the Docker MCP server entirely.
+   - If the call failed in Step 0a, skip Oura fields in the output card.
 
 8. **Read `WORKSPACE/activity-cache.csv` using the Read tool** — recent training history. Read only the tail (e.g., last ~50 rows) by using a large `offset` — this gives 14+ days of context at low token cost. Never read this file via bash (`cat`/`tail`/`head`) because the Cowork mount may be stale.
 9. **Read `WORKSPACE/events-log.md`** — illness, travel, and other disruptions
@@ -261,7 +260,7 @@ Keep this tight — 200–350 words max. The athlete reads this in 30 seconds.
 
 ## Notes
 
-- If oura-today.json does not exist or is stale, omit the Oura row from the card entirely — no need to flag the absence.
+- If the Oura MCP call fails or returns no data, omit the Oura row from the card entirely — no need to flag the absence.
 - If the cache file isn't found or is empty for the recent period, note it and rely on biometric signals only.
 - If the events log doesn't exist or is empty, proceed with biometric data only.
 - If sleep data shows a nap or fragmented sleep, mention it — total hours can be misleading.

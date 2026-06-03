@@ -140,7 +140,7 @@ rpe, feel
 
 **Backfill note:** If the cache header does not yet include `rpe` and `feel` columns, the first sync after the schema change must add them. Extend the header line to include the two new columns, and left-pad existing rows with two empty trailing fields so column alignment is preserved. Do not re-tag or re-fetch old activities — just add the empty columns.
 
-Write the new rows using the Edit tool (append to end of file).
+**Append new rows using bash, not the Edit tool.** The Edit tool writes to the Windows filesystem but the bash sandbox sees a session-start mount snapshot — changes made via Edit are invisible to Python scripts (including `update-dashboard.py`) until the session restarts. Use `echo '...' >> /sessions/.../activity-cache.csv` (bash path) to append each row, then verify with `tail -2` before running the dashboard script.
 
 ---
 

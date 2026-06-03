@@ -76,7 +76,8 @@ each week compute:
 - Total elevation gain
 - Longest single session (distance)
 - Count of strength sessions
-- Count of hill-modifier sessions
+- Total elevation gain (m D+)
+- Count of sessions with elevation gain ≥ 200 m (hill sessions)
 - Count of technical-terrain sessions
 - Count of night sessions (time_of_day = Night)
 - Presence of a back-to-back weekend (Sat long + Sun ≥ 10 km easy)
@@ -115,7 +116,8 @@ tighter/looser tolerances):
 | Volume trend (4-wk vs. prev 4-wk) | +5% to +20% in a build phase; flat ±5% in recovery/taper | +/- appropriate but inconsistent | stagnant for 8+ weeks in a build phase |
 | Long-run progression | steadily increasing, hitting phase targets | plateaued 3+ weeks | plateaued 5+ weeks OR regressed |
 | Strength frequency | meeting phase prescription | 50–80% of prescription | <50% of prescription |
-| Hill exposure | ≥ 1 hill-modifier session per week in build phases if race is hilly | 1 per 2 weeks | 0 in last 4 weeks |
+| Hill exposure — weekly D+ | ≥ 1200 m D+/week in build phases (race 2934 m D+) | 800–1199 m D+/week | < 800 m D+/week for 3+ weeks |
+| Hill exposure — big sessions | ≥ 1 session with ≥ 200 m gain per week in build phases | 1 per 2 weeks | 0 in last 4 weeks |
 | Night sessions (if race starts at night) | on pace for phase plan | ≤ 1 in last 8 weeks with race < 12 weeks | 0 in last 8 weeks with race < 8 weeks |
 | Back-to-back weekends (Phase 2+) | ≥ 2 per 4-week block | 1 per 4-week block | 0 per 4-week block |
 | Key milestones | all on schedule | 1 slipping | 2+ slipping |
@@ -139,8 +141,8 @@ The worst flag across all areas is the headline verdict.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Last 8 weeks at a glance**
-Week of   Km    Hrs   Elev    Long    Str  Hill  Tech  Night  B2B
-Apr 13    47    6:45  610     18.2    2    1     0     0      yes
+Week of   Km    Hrs   Elev    Long    Str  Hill≥200m  Tech  Night  B2B
+Apr 13    47    6:45  610     18.2    2    1          0     0      yes
 [...]
 
 **Checks**
@@ -149,7 +151,8 @@ Apr 13    47    6:45  610     18.2    2    1     0     0      yes
 🟢/🟡/🔴 Volume trend:           [4-wk vs. prev 4-wk, + direction]
 🟢/🟡/🔴 Long-run progression:    [longest per week for last 6 weeks]
 🟢/🟡/🔴 Strength frequency:      [sessions/week vs. prescription]
-🟢/🟡/🔴 Hill exposure:           [count last 4 weeks; race elev profile]
+🟢/🟡/🔴 Hill exposure (D+):       [weekly D+ last 4 weeks vs. 1200 m target; trend]
+🟢/🟡/🔴 Hill exposure (sessions): [count sessions ≥200 m gain last 4 weeks]
 🟢/🟡/🔴 Night sessions:          [count last 8 weeks; race start time]
 🟢/🟡/🔴 Back-to-back weekends:   [count last 4 weeks; phase threshold]
 🟢/🟡/🔴 Key milestones:          [bullet list of named milestones with status]

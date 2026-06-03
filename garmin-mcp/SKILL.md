@@ -247,15 +247,17 @@ Harjoituksen luonti Garmin Connectiin. Käytä `upload_workout` kun harjoitukses
 
 5. **Tempo/kynnysharjoituksissa** kolme aikasidonnaista vaihetta: lämmittely (10 min, no target) + pääosuus (HR target) + jäähdyttely (10 min, no target).
 
-**HR-kohdearvot Tommin vyöhykkeille** (lue aina athlete-profile.md:stä, älä hardkoodaa):
+6. **`endCondition` on objekti + `endConditionValue` erillinen kenttä** ⚠️ — API palauttaa 400-virheen jos käytät vanhaa muotoa (`conditionType` + `endConditionValue` erillisinä). Oikea rakenne aikaperustaiselle askeleelle:
+   ```json
+   "endCondition": {
+     "conditionTypeId": 2,
+     "conditionTypeKey": "time"
+   },
+   "endConditionValue": 3300
+   ```
+   Lap-näppäimelle (`conditionTypeId: 1, conditionTypeKey: "lap.button"`) `endConditionValue`-kenttää ei tarvita. **Älä laita `endConditionValue`:a `endCondition`-objektin sisään** — se aiheuttaa aika=0 kalenterissa vaikka upload onnistuu.
 
-| Zone | targetValueOne | targetValueTwo |
-|------|---------------|----------------|
-| Z1 | 100 | 124 |
-| Z1–Z2 | 100 | 141 |
-| Z3 | 142 | 148 |
-| Z4 | 150 | 158 |
-| Z5 | 160 | 175 |
+**HR target values:** Always read zone boundaries from the `Athlete Config` block in `athlete-profile.md`. Use `targetValueOne` / `targetValueTwo` (bpm) with `workoutTargetTypeId: 4`. Never hardcode specific bpm values here.
 
 **Sport type:**
 - Maantiejuoksu: `sportTypeId: 1, sportTypeKey: "running"`
@@ -327,6 +329,8 @@ Tee rinnakkain (tämä järjestys seuraa daily-readiness skilliä):
 | 6 | `training_balance_feedback: AEROBIC_HIGH_SHORTAGE` = Z3–Z4-vaje | Pitkä helppo lenkki ei korjaa tätä — tarvitaan tempo/kynnys/intervalliharjoitus |
 | 7 | `RECOVERY` training status ≠ `DETRAINING` | Recovery = tarkoituksellinen palautuminen (ok). Detraining = kuorma laskenut liian alas (varoitus). |
 | 8 | `vo2_max` vs `vo2_max_precise` | Käytä `vo2_max_precise` tarkempaan analyysiin. Mutta athlete-profile.md:n lab-confirmed arvo (44) yliajaa molemmat Garminin estimaatit. |
+| 9 | `delete_workout` palauttaa Python-virheen `'dict' object has no attribute 'status_code'` | MCP-wrapperin bugi — operaatio onnistuu silti. Tarkista `get_scheduled_workouts`:lla että harjoitus poistui. |
+| 10 | `get_scheduled_workouts` ei palauta menneitä viikkoja | API palauttaa tyhjän listan jos kaikki harjoitukset ovat suoritettuja tai aikaväli on menneisyydessä. Ei tarkoita ettei harjoituksia ollut — ne vain eivät enää näy API:ssa. |
 
 ---
 

@@ -77,7 +77,7 @@ Read these in parallel **using the Read tool, not bash** (see CLAUDE.md File rea
 Also fetch live readiness data if available (these can fail silently):
 - `mcp__garmin__get_body_battery` (today)
 - `mcp__garmin__get_morning_training_readiness` (today)
-- `mcp__oura__get_today_readiness_data`
+- `mcp__oura__oura_readiness` parametrilla `{"date": "YYYY-MM-DD"}` (tänään)
 
 If Garmin/Oura is unavailable, proceed with cache data only — note it briefly in the plan context line.
 

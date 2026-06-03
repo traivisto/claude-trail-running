@@ -42,13 +42,15 @@ Cowork's Linux sandbox sees workspace files through a mount that is essentially 
 This applies particularly strictly to `activity-cache.csv`, which can be updated externally between sessions or by the activity-cache-updater skill mid-session.
 
 ## Activity cache sync rule
-The cache must be current before any coaching analysis. Two triggers — both mandatory, not optional:
+The cache must be current before any coaching analysis. **Always sync at the start of every workflow** that reads the cache — the check is a single lightweight API call and costs nothing if there is nothing new.
 
-1. **Stale cache detected** — If the most recent date in activity-cache.csv is older than yesterday, immediately run the activity-cache-updater skill before doing anything else. This applies at the start of any workflow that reads the cache (readiness, monthly summary, training plan, etc.). Do not proceed with analysis until the update is complete.
+**Default behaviour (mandatory):** At the start of any workflow that reads the cache (readiness, health check, monthly summary, training plan, etc.), call `get_activities_by_date` from the day after the last cached date through today. If any new activities are returned, run the activity-cache-updater skill before proceeding. If nothing is returned, continue immediately — the cache is confirmed current. Do not skip this step even if the cache appears recent; a planned workout may have been completed earlier the same day.
 
-2. **New activity spotted** — If Claude fetches Garmin activities (e.g. via get_activities_by_date or get_activity) and finds an activity not yet in activity-cache.csv, immediately run the activity-cache-updater skill before continuing.
+**Exception — skip the Garmin call only if** the cache was already synced earlier in this same session (i.e. the activity-cache-updater skill has already run and confirmed the cache is up to date).
 
-In both cases: do not wait for the user to ask, and do not skip the update in favour of answering faster.
+**Additional trigger — new activity spotted mid-workflow:** If at any point Claude fetches a Garmin activity and finds it is not yet in the cache, run the activity-cache-updater skill immediately before continuing.
+
+In all cases: do not wait for the user to ask, and do not skip the sync in favour of answering faster.
 
 ## Dashboard update rule
 After every activity cache sync (activity-cache-updater skill), always run `update-dashboard.py` from this folder (use the absolute path to this workspace folder). This regenerates training-dashboard.html from the updated cache. Tell the user to refresh the dashboard in their browser.
@@ -73,7 +75,7 @@ Use the `training-plan` skill for all training plan creation. The skill handles 
 - Archives the previous plan to `arkisto/` with a date-stamped filename when replaced
 
 ## Optional: Oura Ring
-Oura data is used when `oura-today.json` exists in the workspace and its `date` field matches today. If the file is missing or stale, all skills continue with Garmin data only — no action needed. To use Oura: run `oura-fetch.py` before a morning check-in (requires `oura.env` with a valid API token in the workspace root).
+Oura data is fetched live via the `mcp__oura__` MCP tools (daveremy/oura-mcp, token stored in Cowork MCP config). Skills call `mcp__oura__oura_daily_summary` directly — no local file or script needed. If the MCP tools are unavailable, all skills continue with Garmin data only.
 
 ## Optional: Telegram remote interface
-A Telegram bot can be used as a remote interface — send coaching questions and log status updates from your phone without opening Cowork. Only active if `~/mcps/telegram-trail-coach.json` exists and contains a valid bot token. To find the file: `python3 -c "from pathlib import Path; print(Path.home()/'mcps'/'telegram-trail-coach.json')"`. State is tracked in `telegram-last-update.txt` in the workspace. A scheduled task polls for new messages hourly from 9 AM onward.
+A Telegram bot can be used as a remote interface — send coaching questions and log status updates from your phone without opening Cowork. Requires the `telegram-nemo` Cowork plugin to be installed and configured with a bot token. If the plugin is not installed or the `mcp__telegram-nemo__` tools are unavailable, skip all Telegram steps silently — no error, no prompt to the user. State is tracked in `telegram-last-update.txt` in the workspace. A scheduled task polls for new messages hourly. See `memory.md` for bot setup details specific to this athlete's installation.
