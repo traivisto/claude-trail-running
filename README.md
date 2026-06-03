@@ -176,26 +176,17 @@ cmd /c uvx --python 3.12 --from git+https://github.com/Taxuspt/garmin_mcp garmin
 Credentials: stored at `~/.garminconnect` (auto-managed by garth library).
 First-time auth: `uvx --python 3.12 --from git+https://github.com/Taxuspt/garmin_mcp garmin-mcp-auth`
 
-### Credentials folder
-
-All API tokens and secrets are stored in `~/mcps/` — your personal credentials folder, outside the workspace. This keeps secrets out of any git repository or shared plugin.
-
-On Windows: `C:\Users\<you>\mcps\`
-On Mac/Linux: `~/mcps/`
-
-Create the folder once: `mkdir -p ~/mcps` (Mac/Linux) or `mkdir %USERPROFILE%\mcps` (Windows).
-
 ### Oura Ring (optional)
 Provides: body temperature deviation, readiness score, HRV balance, sleep quality.
 
 Oura is fully optional. All coaching skills work without it — Garmin data is sufficient. If you have an Oura Ring:
 
 1. Create a Personal Access Token at cloud.ouraring.com → Developer → Personal Access Tokens
-2. Create `~/mcps/oura.env` with the content: `OURA_API_TOKEN=your_token_here`
-3. Install the Python dependency: `pip install requests`
-4. Before a morning check-in, sync your Oura app, then run: `python oura-fetch.py`
-   This writes `oura-today.json` to the workspace. The daily-readiness skill reads it automatically.
-5. If `oura-today.json` is missing or from a previous day, the skill continues with Garmin data only — no error.
+2. Add it to `claude_desktop_config.json` under the `oura` server's `env` block:
+   ```json
+   "OURA_PERSONAL_ACCESS_TOKEN": "your_token_here"
+   ```
+3. Restart Claude Desktop.
 
 ### Telegram (optional)
 Provides: a remote interface to send coaching questions and log events from your phone, without opening Cowork.
@@ -203,14 +194,11 @@ Provides: a remote interface to send coaching questions and log events from your
 Telegram is fully optional. To enable it:
 
 1. Create a Telegram bot via @BotFather and copy the bot token
-2. Create `~/mcps/telegram-trail-coach.json`:
-```json
-{
-  "bot_token": "your_bot_token_here",
-  "allowed_chat_ids": [your_telegram_user_id]
-}
-```
-3. A scheduled task polls for new messages hourly from 9 AM onward. If the file doesn't exist, the bot is inactive.
+2. Add it to `claude_desktop_config.json` under the `telegram-nemo` server's `env` block:
+   ```json
+   "TELEGRAM_BOT_TRAIL_COACH": "your_bot_token_here"
+   ```
+3. Restart Claude Desktop. A scheduled task polls for new messages hourly.
 
 ---
 
