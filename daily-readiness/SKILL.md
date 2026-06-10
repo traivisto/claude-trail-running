@@ -53,20 +53,21 @@ Call `mcp__garmin__get_sleep_summary` with `{"date": "YYYY-MM-DD"}` (today). Lig
 - Returns empty or error → **Garmin data missing** (watch not synced)
 
 ### 0c: Activity cache
-Read `WORKSPACE/activity-cache.csv` (tail only, `offset` near end-of-file, `limit: 20`). Check the most recent `date`.
-- Most recent date ≥ yesterday → cache OK
-- Most recent date < yesterday → **cache stale** (last: [date])
+Follow the **Activity cache sync rule in CLAUDE.md** (the single source of truth for cache freshness):
+1. Read `WORKSPACE/activity-cache.csv` (tail only, `offset` near end-of-file, `limit: 20`) to find the most recent cached `date`.
+2. Call `mcp__garmin__get_activities_by_date` from the day **after** that date through today. This catches both stale caches and a planned workout completed earlier today.
+3. New activities returned → run the **activity-cache-updater** skill now, then continue. Nothing returned → cache confirmed current.
+4. Skip the Garmin call only if the cache was already synced earlier in this same session.
 
 ### 0d: Decision logic
 
-**If all three OK:** continue directly to Step 1 with no prompt.
+**If Oura and Garmin are OK** (cache was handled automatically in 0c): continue directly to Step 1 with no prompt.
 
-**If any is missing or stale:** tell the user what is missing and ask how to proceed. Example:
+**If Oura or Garmin data is missing:** tell the user what is missing and ask how to proceed. Example:
 
 > Before the readiness analysis, I noticed:
 > - **Oura**: no data for today — ring not synced
 > - **Garmin**: not synced
-> - **Activity cache**: up to date ✓
 >
 > Do you want to sync first (close Cowork, sync, come back) or continue now with available data?
 
@@ -105,9 +106,9 @@ Call these tools simultaneously, and also read both local files:
    - Extracts: `readiness.score`, `readiness.contributors.body_temperature`, `readiness.temperature_deviation`, `readiness.temperature_trend_deviation`, `sleep.score`
    - If the call failed in Step 0a, skip Oura fields in the output card.
 
-8. **Read `WORKSPACE/activity-cache.csv` using the Read tool** — recent training history. Read only the tail (e.g., last ~50 rows) by using a large `offset` — this gives 14+ days of context at low token cost. Never read this file via bash (`cat`/`tail`/`head`) because the Cowork mount may be stale.
-9. **Read `WORKSPACE/events-log.md`** — illness, travel, and other disruptions
-10. **Read `WORKSPACE/current-plan.md`** — extract the entry for today's date to show what session is planned. If the file is missing or today's date is not within the plan period, skip silently.
+7. **Read `WORKSPACE/activity-cache.csv` using the Read tool** — recent training history. Read only the tail (e.g., last ~50 rows) by using a large `offset` — this gives 14+ days of context at low token cost. Never read this file via bash (`cat`/`tail`/`head`) because the Cowork mount may be stale.
+8. **Read `WORKSPACE/events-log.md`** — illness, travel, and other disruptions
+9. **Read `WORKSPACE/current-plan.md`** — extract the entry for today's date to show what session is planned. If the file is missing or today's date is not within the plan period, skip silently.
 
 If Oura tools are unavailable or return errors, continue without them — Garmin data is sufficient.
 

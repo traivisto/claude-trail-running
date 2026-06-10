@@ -184,7 +184,7 @@ calories
 trainingEffectLabel    "AEROBIC_BASE" / "TEMPO" / "VO2MAX" / "ANAEROBIC_CAPACITY" / "RECOVERY"
 aerobicTrainingEffect
 anaerobicTrainingEffect
-directWorkoutRpe    (integer or null — Garmin's own RPE value)
+directWorkoutRpe    (integer or null — ⚠️ RPE × 10: API returns 30 for RPE 3, 90 for RPE 9 — divide by 10)
 directWorkoutFeel   (numeric code or null → map: 1=very_weak, 2=weak, 3=normal, 4=strong, 5=very_strong)
 ```
 

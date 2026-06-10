@@ -56,57 +56,20 @@ For each new activity, also call `mcp__garmin__get_activity_splits` with the num
 
 ## Step 3: Classify each new activity
 
-For each activity **not already in the cache** (check by `activity_id`), apply the
-garmin-activity-tagger classification logic manually:
+For each activity **not already in the cache** (check by `activity_id`), classify it
+by following **`garmin-activity-tagger/SKILL.md`** — read that file and apply its
+Classification logic, Modifiers, Modality mapping, Time-of-day table, and Edge cases
+exactly as written there.
 
-### Classification rules (ordered — first match wins)
+**Do not maintain a copy of the rules here.** The tagger skill is the single source of
+truth for classification logic; a duplicated table in this file has already drifted
+once and was removed for that reason. The key sections to apply from the tagger:
 
-| # | Purpose | Condition |
-|---|---------|-----------|
-| 1 | Strength | type is gym/strength/indoor_cardio with distance < 1 km or avg HR < 100 |
-| 2 | Interval / VO2max | trainingEffectLabel = VO2MAX, or anaerobicTrainingEffect > 2.5 |
-| 3 | Tempo / Threshold | label = TEMPO or LACTATE_THRESHOLD, **and** duration < 120 min |
-| 4 | Recovery | duration < 60 min AND label = RECOVERY |
-| 5 | Very long / Race sim | distance > 30 km OR duration > 180 min |
-| 6 | Long effort | distance > 15 km OR duration > 90 min |
-| 7 | Cross-training | modality is Swimming, Skiing, Cycling, or Hiking/walking |
-| 8 | Aerobic base | everything else |
-
-### Modifiers (apply independently)
-
-- **Hill**: elevation_per_km > `hill_modifier_threshold_m_per_km` from athlete-profile.md (skip if distance < 2 km)
-- **Technical terrain** (running only, distance > 2 km):
-  ```
-  baseline = aerobic_baseline_pace_min_km     (Aerobic base / Tempo / Interval)
-           = long_effort_baseline_pace_min_km (Long effort / Very long)
-           = skip                              (Recovery / Strength / Cross-training)
-  expected = baseline + (elev_per_km × 0.06)
-  flag if actual_pace > expected × technical_terrain_multiplier
-  ```
-  (All `baseline` and multiplier values come from the Athlete Config block in `athlete-profile.md`.)
-
-### Modality mapping
-
-| Garmin typeKey | Modality |
-|---------------|----------|
-| trail_running | Trail running |
-| running, indoor_running | Road running |
-| lap_swimming, open_water_swimming | Swimming |
-| skate_skiing_ws | Skate skiing |
-| cross_country_skiing_ws | XC skiing |
-| cycling, e_bike_mountain, e_bike_fitness | Cycling |
-| hiking, walking | Hiking / walking |
-| indoor_cardio, strength_training, yoga, pilates, breathwork | Gym / strength |
-| multi_sport | Multi-sport |
-
-### Time of day
-
-| Start hour | Tag |
-|-----------|-----|
-| 05–08 | Morning |
-| 09–16 | Daytime |
-| 17–21 | Evening |
-| 22–04 | Night |
+- **Classification logic** (ordered purpose checks — note Cross-training comes before
+  the long-duration rules, so long ski/bike/walk sessions are Cross-training, not Long effort)
+- **Modifiers** — Hill and Technical terrain, thresholds from the Athlete Config block
+- **Modality mapping** (Garmin typeKey → modality label, including `resort_skiing` → Resort skiing)
+- **Edge cases** — multi-sport dominant segment, resort skiing never Hill, missing elevation
 
 ---
 
@@ -124,7 +87,7 @@ rpe, feel
 ```
 
 **Column notes:**
-- `rpe`: Garmin's post-activity perceived exertion value (integer 0–10). Read from the `directWorkoutRpe` field of `get_activity`. If the athlete did not rate the session, leave the field empty.
+- `rpe`: Garmin's post-activity perceived exertion, stored in the cache on a **0–10 scale**. ⚠️ The `directWorkoutRpe` field of `get_activity` returns the value **multiplied by 10** (e.g. 30 = RPE 3, 90 = RPE 9) — always divide by 10 before writing. If the athlete did not rate the session, leave the field empty.
 - `feel`: Garmin's post-activity subjective feel label. Read from `directWorkoutFeel` (Garmin uses numeric scale; convert to text where possible: very_weak / weak / normal / strong / very_strong) or `feelLabel` if present. Leave empty if absent.
 
 **Important:**
@@ -133,7 +96,8 @@ rpe, feel
 - Round elevation_m to 0 decimal places
 - Round elev_per_km to 1 decimal place
 - Round pace_min_km to 2 decimal places
-- `hill` and `technical_terrain` are Python-style booleans: `True` or `False`
+- `hill` and `technical_terrain` are Python-style booleans: `True` or `False` (exact case — not `TRUE`/`FALSE`)
+- `time_local` is `HH:MM` (24 h, no seconds)
 - `rpe` and `feel` may be empty — never guess or fabricate values; only write what Garmin returns
 - Keep existing rows unchanged — only append new rows
 - Sort new rows by date ascending before appending

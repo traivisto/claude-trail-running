@@ -60,6 +60,7 @@ Multiple modifiers can stack: *Long effort + Hill + Technical terrain* is valid.
 | `cross_country_skiing_ws` | XC skiing |
 | `cycling`, `e_bike_mountain`, `e_bike_fitness` | Cycling |
 | `hiking`, `walking` | Hiking / walking |
+| `resort_skiing` | Resort skiing |
 | `indoor_cardio` + no GPS | Gym / strength |
 | `multi_sport` | Multi-sport (note separately) |
 
@@ -111,9 +112,9 @@ Work through these checks **in order** — use the first that matches:
 2. **Interval / VO2max** — Garmin `trainingEffectLabel` = `VO2MAX`, or `anaerobicTrainingEffect` > 2.5
 3. **Tempo / Threshold** — Garmin label = `TEMPO` or `LACTATE_THRESHOLD`, **and duration < 2 h** (if ≥ 2 h, fall through to long/very long — no real tempo session lasts 2+ hours)
 4. **Recovery** — duration < 60 min AND (label = `RECOVERY` OR Z1 > 65% of zone time)
-5. **Very long / Race sim** — distance > 30 km OR duration > 3 h
-6. **Long effort** — distance > 15 km OR duration > 90 min
-7. **Cross-training** — modality is swimming, skiing, cycling, or hiking/walking
+5. **Cross-training** — modality is swimming, skiing, cycling, or hiking/walking. **This check comes before the long-duration rules deliberately:** a 2 h ski tour is Cross-training, not "Long effort" — the long/very-long tags are reserved for running. Quality work on skis still gets caught by rules 2–3 above.
+6. **Very long / Race sim** — distance > 30 km OR duration > 3 h
+7. **Long effort** — distance > 15 km OR duration > 90 min
 8. **Aerobic base** — default for everything else
 
 Then check modifiers **independently** (apply as many as fit):
@@ -220,6 +221,7 @@ If classification is genuinely ambiguous, note both candidates and explain which
 
 - **Garmin TEMPO label on a long session:** Override with Very long / Race sim if duration > 2 h. A 4-hour "tempo" is not a tempo session — Garmin mislabels sustained hard mountain efforts.
 - **Skiing and swimming:** Default to Cross-training; apply purpose label upgrade if label = TEMPO etc.
+- **Resort (downhill) skiing:** Always Cross-training, and **never apply the Hill modifier** — elevation gain is lift-assisted and does not represent climbing stimulus.
 - **Multi-sport:** Apply purpose logic to dominant segment (longest by duration); note modality as Multi-sport. For the **Hill modifier**, use the dominant segment's elevation and distance (from `get_activity_splits`), not the overall totals — cycling legs dilute elev_per_km and can cause the flag to be missed. Example: a hiking drill with 529 m / 10 km = 52.9 m/km qualifies as Hill even if the full multisport activity shows only 32.9 m/km overall.
 - **Missing elevation data:** Skip Hill modifier entirely — never infer.
 - **Very short activities (< 20 min):** Lean toward Recovery or Strength unless HR/label says otherwise.

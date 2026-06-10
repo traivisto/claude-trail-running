@@ -33,6 +33,7 @@ MOD_LABEL = {
     "Gym / strength":         "Strength",
     "Multi-sport":            "Multi-sport",
     "resort_skiing":          "Resort ski",
+    "Resort skiing":          "Resort ski",
 }
 # modData tracks only these 8 labels (others skipped)
 MODDATA_LABELS  = ["Trail","Road","XC Ski","Skate Ski","Walk","Cycling","Swim","Strength"]
