@@ -48,6 +48,10 @@ The cache must be current before any coaching analysis. **Always sync at the sta
 
 **Exception — skip the Garmin call only if** the cache was already synced earlier in this same session (i.e. the activity-cache-updater skill has already run and confirmed the cache is up to date).
 
+**Exception — quick-lookup:** the `quick-lookup` skill is deliberately offline (no API calls, speed is its purpose). It does **not** sync. Instead, if the cache frontier is older than yesterday, its answer must include a one-line staleness caveat (e.g. "cache covers through [date] — recent days may be missing"). If the user then wants exact current numbers, run the sync.
+
+**This section is the single source of truth for cache freshness.** Skills must not define their own divergent freshness checks — they reference this rule.
+
 **Additional trigger — new activity spotted mid-workflow:** If at any point Claude fetches a Garmin activity and finds it is not yet in the cache, run the activity-cache-updater skill immediately before continuing.
 
 In all cases: do not wait for the user to ask, and do not skip the sync in favour of answering faster.

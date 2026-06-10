@@ -36,7 +36,7 @@ Use the containing directory as **WORKSPACE**. All file references below are rel
 
 ---
 
-## Step 0: Classify the question
+## Step 1: Classify the question
 
 Before doing anything else, decide which category this question falls into:
 
@@ -72,6 +72,8 @@ For some questions, one file is enough. For others (e.g. "when does the taper st
 ## Step 3: Answer
 
 ### Cache questions (distance, counts, elevation, etc.)
+
+**Staleness caveat (this skill's exemption from the CLAUDE.md sync rule):** this skill is deliberately offline and never syncs. Check the most recent `date` in the cache — if it is older than yesterday, append a one-line caveat to the answer: *"cache covers through [date] — recent days may be missing"*. Offer a sync only if the user needs exact current numbers.
 
 For any aggregation over the cache, use a short Python script rather than trying to compute in your head. This avoids errors on multi-week or multi-month sums.
 

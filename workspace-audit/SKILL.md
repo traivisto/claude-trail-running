@@ -62,12 +62,14 @@ find "$WORKSPACE" -maxdepth 2 -not -path '*/arkisto/*' -not -path '*/.git/*' \
 Verify that all non-personal files a new user needs are actually present in the workspace root.
 
 ```bash
-for f in oura-fetch.py update-dashboard.py update-dashboard.bat README.md CLAUDE.md; do
+for f in update-dashboard.py update-dashboard.bat README.md CLAUDE.md; do
   [ -f "$WORKSPACE/$f" ] && echo "EXISTS: $f" || echo "MISSING: $f"
 done
 ```
 
 Any missing file → ❌
+
+(`oura-fetch.py` is a legacy fallback — Oura is fetched via MCP connector. Its absence is not an error.)
 
 ### 1c: .gitignore present and covers sensitive files
 
@@ -273,7 +275,7 @@ from setup-template/, or any file in setup-template/ not mentioned in README.
 
 Already covered in Step 4 — no separate check needed.
 
-### 6b: README skill table ↔ CLAUDE.md skill table consistency
+### 6c: README skill table ↔ CLAUDE.md skill table consistency
 
 Read both files and extract their skill lists. Every skill in CLAUDE.md should also appear
 in README's Skills reference section, and vice versa. This catches the case where a new
@@ -283,12 +285,12 @@ skill is added to CLAUDE.md but the README is not updated (or the reverse).
 - In README but missing from CLAUDE.md → ⚠️
 - Perfect match → ✅
 
-### 6c: Optional integrations documented
+### 6d: Optional integrations documented
 
-Read README.md and verify:
-- Oura is documented as optional with `oura-fetch.py` + `oura.env` instructions
-- Telegram is documented as optional with `telegram-trail-coach.json` gate
-- Neither is presented as required
+Read README.md and verify it matches the **current architecture** (MCP-first):
+- Oura is documented as optional, fetched live via the `mcp__oura__` MCP connector (daveremy/oura-mcp). `oura-fetch.py` + `oura.env` may be mentioned only as a legacy/fallback path, not the primary method.
+- Telegram is documented as optional via the `telegram-nemo` Cowork plugin (`mcp__telegram-nemo__` tools), with silent skip when unavailable. References to the old `telegram-trail-coach.json` HTTP setup → ⚠️ outdated.
+- Neither integration is presented as required.
 
 ---
 
