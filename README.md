@@ -217,7 +217,7 @@ Telegram is fully optional. To enable it:
 | `training-dashboard.html` | Visual training overview. Open in browser. Auto-regenerated after cache sync. | ✅ |
 | `update-dashboard.py` | Regenerates the dashboard from the cache. No external dependencies. | ⬜ |
 | `update-dashboard.bat` | Windows shortcut to run the dashboard script. | ⬜ |
-| `oura-fetch.py` | Fetches today's Oura data and writes `oura-today.json`. Optional — only needed if you have an Oura Ring. | ⬜ |
+| `oura-fetch.py` | Legacy fallback for Oura data (writes `oura-today.json`). Not needed — Oura is fetched live via the MCP connector (see above). | ⬜ |
 | `current-plan.md` | Active training plan (rolling). Overwritten when a new plan is created; previous plan archived to `arkisto/`. | ✅ |
 | `setup-template/` | Blank starting files for new athletes. Copy to workspace root. | ⬜ |
 
