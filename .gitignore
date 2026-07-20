@@ -23,6 +23,12 @@ telegram-trail-coach.json
 # Archives and personal history
 arkisto/
 
+# Personal drafts and notes — not for the public repo
+blog-post-draft.md
+linkedin-post-draft.md
+telegram-conversation-log.md
+lunttikortti_*
+
 # setup-template/ contains blank starter files — include them despite the rules above
 !setup-template/
 !setup-template/**
