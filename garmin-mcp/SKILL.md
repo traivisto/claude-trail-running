@@ -89,7 +89,7 @@ Extract: `allMetrics.metricsMap.WELLNESS_RESTING_HEART_RATE[0].value`
 ```
 params: { date: "YYYY-MM-DD" }
 ```
-Returns a list (usually 1 item):
+⚠️ Takes a single `date`, **not** `start_date`/`end_date` — calling with `start_date`/`end_date` returns a validation error (found 2026-08-06). Returns a list (usually 1 item):
 ```json
 [{
   "date": "2026-05-16",
@@ -118,6 +118,7 @@ Returns a list (usually 1 item):
 ```
 params: { date: "YYYY-MM-DD" }
 ```
+⚠️ Also a single `date`, not `start_date`/`end_date` (found 2026-08-06, same as `get_training_readiness`).
 ```json
 {
   "date": "2026-05-16",
@@ -168,33 +169,37 @@ params: { date: "YYYY-MM-DD" }
 ```
 params: { start_date: "YYYY-MM-DD", end_date: "YYYY-MM-DD" }
 ```
-Returns all activities for the date range in a single call — no pagination.
+Returns all activities for the date range in a single call — no pagination. Response is `{count, page, page_size, has_more, date_range, activities: [...]}`.
 
-Key fields per activity:
+⚠️ **Field names differ from what older versions of this doc said** (corrected 2026-08-06 — actual field names returned by the current MCP wrapper):
 ```
-activityId          (number — IMPORTANT: always use number type, not string)
-activityName
-startTimeLocal      "2026-05-13T20:14:12"
-distance            in metres → divide by 1000 for km
-duration            in seconds → divide by 60 for minutes
-activityType.typeKey   e.g. "trail_running", "running", "strength_training"
-averageHR
-maxHR
+id                      (number — IMPORTANT: always use number type, not string)
+name
+type                    e.g. "trail_running", "running", "cycling", "walking" (not activityType.typeKey)
+start_time              "2026-08-05 20:57:55" (not startTimeLocal)
+distance_meters         → divide by 1000 for km (not "distance")
+duration_seconds        → divide by 60 for minutes (not "duration")
 calories
-trainingEffectLabel    "AEROBIC_BASE" / "TEMPO" / "VO2MAX" / "ANAEROBIC_CAPACITY" / "RECOVERY"
-aerobicTrainingEffect
-anaerobicTrainingEffect
-directWorkoutRpe    (integer or null — ⚠️ RPE × 10: API returns 30 for RPE 3, 90 for RPE 9 — divide by 10)
-directWorkoutFeel   (numeric code or null → map: 1=very_weak, 2=weak, 3=normal, 4=strong, 5=very_strong)
+avg_hr_bpm              (not averageHR)
+max_hr_bpm              (not maxHR)
+steps
+elevation_gain_meters   ⚠️ IS present directly on this call — no need for get_activity_splits just for elevation
+elevation_loss_meters
 ```
-
-⚠️ **Elevation data is not in this call** — use `get_activity_splits` per activity.
+This call does **not** include `training_effect_label`, `aerobic_training_effect`, `anaerobic_training_effect`, `rpe`, or `feel` — call `get_activity` per activity for those (needed for cache classification).
 
 ### `get_activity`
 ```
 params: { activity_id: 12345678 }   // number, not string
 ```
-Full details for a single activity. Use when `directWorkoutRpe` / `directWorkoutFeel` or other fields not returned by `get_activities_by_date` are needed.
+Full details for a single activity. Use for `training_effect_label`, `training_effect` (aerobic), `anaerobic_training_effect`, `workout_rpe`, `workout_feel`, and other fields not returned by `get_activities_by_date`.
+
+⚠️ **RPE/feel field names and scale corrected 2026-08-06** — the actual fields are `workout_rpe` and `workout_feel` (not `directWorkoutRpe`/`directWorkoutFeel`), and `workout_feel` uses a 0/25/50/75/100 scale, not 1–5:
+```
+workout_rpe    (integer or absent — same ×10 quirk as before: divide by 10, e.g. 10 → RPE 1.0)
+workout_feel   (integer or absent, 0/25/50/75/100 → very_weak/weak/normal/strong/very_strong)
+```
+Both fields are simply absent from the response (not null) when the athlete didn't rate the session — check with a membership test, not a null check.
 
 ### `get_activity_splits` ⭐ elevation source
 ```

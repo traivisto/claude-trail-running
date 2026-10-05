@@ -79,6 +79,8 @@ Also fetch live readiness data if available (these can fail silently):
 - `mcp__garmin__get_morning_training_readiness` (today)
 - `mcp__oura__oura_readiness` with `{"date": "YYYY-MM-DD"}` (today)
 
+**Load trend check:** also call `mcp__garmin__get_training_load_trend` for at least the last 4 weeks (6 weeks preferred). Look at chronic load (CTL) and its direction, not only today's ACWR — Garmin's "optimal" range is computed from CTL itself (0.8–1.5 × CTL), so ACWR can read OPTIMAL while the base is eroding. Record in the plan's Context line: CTL now, CTL peak of the last 6 weeks, and weekly running km for the last 3 weeks. If CTL is more than 15 % below the 6-week peak, say so and state whether the drop is planned (deload/taper) or due to missed sessions.
+
 If Garmin/Oura is unavailable, proceed with cache data only — note it briefly in the plan context line.
 
 ---
@@ -112,6 +114,16 @@ Fit sessions to the requested date range. Prioritise:
 **Hard constraints — check these before finalising any plan:**
 - **Never schedule strength on two consecutive days.** Minimum 48 h between strength sessions. If 2×/week, place on non-adjacent days (e.g. Tue + Thu).
 - **Never schedule strength the day immediately before the long run.** The day before the long run must be easy running or full rest only.
+
+---
+
+### Step 4b: Archive the previous plan before overwriting
+
+Before writing a new `current-plan.md`, check that the existing plan is already in `arkisto/` (compare its title/date range against `arkisto/training-plan-*.md`). If it is not, copy it to `arkisto/training-plan-YYYY-MM-DD.md` (date = today) **first**, then overwrite. Never overwrite `current-plan.md` before this check; a plan that was only in `current-plan.md` is otherwise lost.
+
+### Rest and load justifications in the plan
+
+When the plan explains a rest day or an easy/hard choice, quote measured numbers (last hard session, 7-day load, ACWR, readiness, HRV) and say whether the reason is program structure or a physiological need — see "Load and rest reasoning rule" in `CLAUDE.md`.
 
 ---
 
