@@ -83,3 +83,10 @@ Oura data is fetched live via the `mcp__oura__` MCP tools (daveremy/oura-mcp, to
 
 ## Optional: Telegram remote interface
 A Telegram bot can be used as a remote interface — send coaching questions and log status updates from your phone without opening Cowork. Requires the `telegram-nemo` Cowork plugin to be installed and configured with a bot token. If the plugin is not installed or the `mcp__telegram-nemo__` tools are unavailable, skip all Telegram steps silently — no error, no prompt to the user. State is tracked in `telegram-last-update.txt` in the workspace. A scheduled task polls for new messages hourly. See `memory.md` for bot setup details specific to this athlete's installation.
+
+## Load and rest reasoning rule
+Rest and load recommendations must be grounded in measured data and must not present program structure as a physiological need.
+
+1. **Numbers before verdicts.** When recommending rest, a lighter session or a harder one, base it on measured figures and quote them: age and size of the last hard session, last 7 days' load, ACWR, Garmin/Oura readiness, HRV vs weekly average. Do not use vague words such as "moderate load" or "heavy week" without a number. Light activity (easy swim, walk, short Z1) is not counted as load unless the data says so.
+2. **Separate the two kinds of reason.** State explicitly whether a decision is (a) program structure (e.g. "Monday is a rest day in the program", a convention that can be changed) or (b) a physiological need (readiness, HRV, soreness, illness). Never present (a) as if it were (b).
+3. **Small signals stay small.** A weak signal (HRV dip within BALANCED, one sensitive-HR run) is used for the go/no-go on the next hard session, not as grounds for blocking easy activity the same day.
