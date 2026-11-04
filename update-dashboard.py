@@ -16,8 +16,9 @@ from datetime import date, timedelta
 from pathlib import Path
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-BASE  = Path(__file__).parent
-CACHE = BASE / "activity-cache.csv"
+BASE         = Path(__file__).parent
+CACHE        = BASE / "activity-cache.csv"
+SPLITS_CACHE = BASE / "aerobic-efficiency-splits.csv"
 DASH  = BASE / "training-dashboard.html"
 
 # ── Modality → dashboard label ─────────────────────────────────────────────
@@ -332,6 +333,81 @@ month_keys    = [f"{y:04d}-{m:02d}" for y, m in months]
 # monthDisplay: "Mon YYYY" labels for purpose chart ticks
 month_display = [f"{MONTH_NAMES[m]} {y}" for y, m in months]
 
+# ── Aerobic efficiency scores ─────────────────────────────────────────────
+# Config (mirrors athlete-profile.md — update here if zones change)
+AE_HR_MIN      = 115   # lower HR bound for qualifying laps
+AE_HR_MAX      = 130   # upper HR bound (Z1 ceiling / low Z2)
+AE_MIN_DIST_M  = 400   # minimum lap distance to include
+AE_GRADE_K     = 0.033 # pace adjustment per 1% grade (standard approximation)
+AE_MIN_LAPS    = 3     # minimum qualifying laps required to produce a score
+
+# Build activity_id → date map from activity cache (road running only)
+aid_to_date = {}
+for a in acts:
+    aid_raw = None
+    # activity_id is in the raw CSV — re-read to get it
+    pass
+
+# Re-read CSV to get activity_id column
+aid_date_map = {}
+if CACHE.exists():
+    with open(CACHE, newline="", encoding="utf-8") as _f:
+        for _row in csv.DictReader(_f):
+            if _row.get("modality", "").strip() == "Road running":
+                try:
+                    _d = date.fromisoformat(_row["date"].strip())
+                except ValueError:
+                    from datetime import datetime as _dt
+                    _d = _dt.strptime(_row["date"].strip(), "%m/%d/%Y").date()
+                aid_date_map[int(_row["activity_id"])] = _d
+
+def gap_pace_minkm(speed_mps, gain_m, loss_m, dist_m):
+    """Grade-adjusted pace in min/km."""
+    raw_pace = 1000.0 / speed_mps / 60.0
+    net_grade_pct = (gain_m - loss_m) / dist_m * 100.0
+    return raw_pace / (1.0 + AE_GRADE_K * net_grade_pct)
+
+# Read splits cache and compute one score per activity
+ae_scores = {}  # activity_id -> {"date": ..., "score": float, "laps": int, "avg_hr": float}
+
+if SPLITS_CACHE.exists():
+    from collections import defaultdict as _dd
+    splits_by_aid = _dd(list)
+    with open(SPLITS_CACHE, newline="", encoding="utf-8") as _f:
+        for _row in csv.DictReader(_f):
+            splits_by_aid[int(_row["activity_id"])].append(_row)
+
+    for _aid, _laps in splits_by_aid.items():
+        if _aid not in aid_date_map:
+            continue
+        qualifying = [
+            l for l in _laps
+            if AE_HR_MIN <= float(l["avg_hr"]) <= AE_HR_MAX
+            and float(l["distance_m"]) >= AE_MIN_DIST_M
+            and float(l["avg_speed_mps"]) > 0
+        ]
+        if len(qualifying) < AE_MIN_LAPS:
+            continue
+        total_dist = sum(float(l["distance_m"]) for l in qualifying)
+        avg_hr    = sum(float(l["avg_hr"])       * float(l["distance_m"]) for l in qualifying) / total_dist
+        avg_gap   = sum(
+            gap_pace_minkm(float(l["avg_speed_mps"]), float(l["elevation_gain_m"]),
+                           float(l["elevation_loss_m"]), float(l["distance_m"]))
+            * float(l["distance_m"])
+            for l in qualifying
+        ) / total_dist
+        score = round(avg_gap / avg_hr * 1000, 4)
+        ae_scores[_aid] = {
+            "date":    aid_date_map[_aid].isoformat(),
+            "score":   score,
+            "laps":    len(qualifying),
+            "avg_hr":  round(avg_hr, 1),
+            "avg_gap": round(avg_gap, 2),
+        }
+
+# Sort by date for the chart
+ae_data = sorted(ae_scores.values(), key=lambda x: x["date"])
+
 # ── Build the replacement data block ──────────────────────────────────────
 
 def arr(name, values, indent=""):
@@ -388,14 +464,17 @@ const calData = {compact_json_list(cal_data)};
 
 const allActivities = {compact_json_list(all_activities)};
 
-const TODAY = '{today_str}';"""
+const TODAY = '{today_str}';
+
+// Aerobic efficiency: GAP/HR scores for qualifying road runs
+const aeData = {compact_json_list(ae_data)};"""
 
 # ── Patch the HTML ─────────────────────────────────────────────────────────
 html = DASH.read_text(encoding="utf-8")
 
 # Find the data block using simple string markers (avoids regex backslash issues)
 START_MARKER = "// Per-session raw (for stats)"
-END_RE = re.compile(r"const TODAY = '[^']*';")
+END_RE = re.compile(r"const aeData = \[.*?\];", re.DOTALL)
 
 start_idx = html.find(START_MARKER)
 end_match = END_RE.search(html, start_idx)

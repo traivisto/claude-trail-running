@@ -262,6 +262,8 @@ Creates a workout in Garmin Connect. Use `upload_workout` when the workout has m
    ```
    For lap-button steps (`conditionTypeId: 1, conditionTypeKey: "lap.button"`) the `endConditionValue` field is not needed. **Do not put `endConditionValue` inside the `endCondition` object** — it causes time=0 in the calendar even though the upload succeeds.
 
+7. **Lap-button steps get a duration hint in the step `description`** (tested 22.10.2026: the text shows on the epix). Do not repeat the step type, since the watch already shows it. Write only the useful part, e.g. warmup `~15 min Z1`, recovery `~2:30`, cooldown `~10 min Z1`.
+
 **HR target values:** Always read zone boundaries from the `Athlete Config` block in `athlete-profile.md`. Use `targetValueOne` / `targetValueTwo` (bpm) with `workoutTargetTypeId: 4`. Never hardcode specific bpm values here.
 
 **Sport type:**

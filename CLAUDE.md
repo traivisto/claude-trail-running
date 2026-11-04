@@ -12,6 +12,7 @@ Each skill lives in its own subfolder as `skill-name/SKILL.md`. Before starting 
 |------|----------|
 | `daily-readiness/SKILL.md` | User asks about today's condition, readiness to train, how recovered they are ("how am I today?", "should I rest?", "what should I do today?") |
 | `activity-cache-updater/SKILL.md` | Cache needs syncing with latest Garmin data (also triggered automatically by other skills) |
+| `aerobic-efficiency-updater/SKILL.md` | Splits cache (`aerobic-efficiency-splits.csv`) for the dashboard's aerobic efficiency chart needs syncing — runs automatically after every activity-cache sync |
 | `coach-monthly-summary/SKILL.md` | User asks for a monthly training summary or multi-month comparison |
 | `garmin-activity-tagger/SKILL.md` | Classifying or tagging a specific activity by type/purpose |
 | `program-health-check/SKILL.md` | User asks if training is on track, program audit, phase progress ("is my program on track?", "program status") |
@@ -27,6 +28,14 @@ Before making any Garmin MCP tool calls, read `garmin-mcp/SKILL.md` for tool sel
 
 ## Athlete context rule
 Before answering any coaching question — including gear, pacing, race strategy, training, or health — always read `athlete-profile.md` and `race-card.md` first. Do not rely on general knowledge when athlete-specific data is available. This applies even to seemingly simple questions where the answer might differ based on the athlete's profile, race distance, or history.
+
+## Activity analysis rule — HR zones
+Whenever a single activity's heart rate is analysed (e.g. "how did today's run look?", interval review, zone distribution), read `garmin-mcp/SKILL.md` and the `Athlete Config` block in `athlete-profile.md` first.
+
+1. **Never use `get_activity_hr_in_timezones`** or Garmin's own zone numbers/time-in-zone figures — they use %HRmax boundaries (88/106/123/141/157) and do not match the athlete's LTHR-based zones.
+2. **Compute the distribution yourself** with the boundaries from `Athlete Config`, from per-second HR in `get_activity_fit_data` with `include_records=true`. The result is large (~1 MB for a 1 h run) and is saved to a file: process it in code (Python), do not read it into context. Assign values that fall between two zones to the lower zone for the gap above a zone's max (e.g. Z3 142–148 → 149 counts as Z3; 159 counts as Z4) and say so.
+3. For interval sessions, report time in target zone per interval (use the lap `start_time` values from the same data), not only the whole-run totals.
+4. If the fit data is unavailable, fall back to lap-level avg/max HR from `get_activity_splits` and state that the zone split is approximate.
 
 ## Technical memory
 `memory.md` contains technical notes and evolving coaching observations that don't fit the structured files above — including known API quirks, connector setup details, and coaching insights accumulated over time. Read it when troubleshooting connector issues, when a skill behaves unexpectedly, or when answering questions about training history context not covered in athlete-profile.md.
@@ -57,7 +66,7 @@ The cache must be current before any coaching analysis. **Always sync at the sta
 In all cases: do not wait for the user to ask, and do not skip the sync in favour of answering faster.
 
 ## Dashboard update rule
-After every activity cache sync (activity-cache-updater skill), always run `update-dashboard.py` from this folder (use the absolute path to this workspace folder). This regenerates training-dashboard.html from the updated cache. Tell the user to refresh the dashboard in their browser.
+After every activity cache sync (activity-cache-updater skill), first run the `aerobic-efficiency-updater` skill (fetches splits for new qualifying road runs; it is a no-op if there are none), then always run `update-dashboard.py` from this folder (use the absolute path to this workspace folder). This regenerates training-dashboard.html from the updated cache. Tell the user to refresh the dashboard in their browser.
 
 ## Garmin workout creation rules
 

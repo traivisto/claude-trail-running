@@ -108,6 +108,12 @@ rpe, feel
 
 ---
 
+## Step 4b: Update the aerobic efficiency splits cache
+
+After appending rows, run **`aerobic-efficiency-updater/SKILL.md`**. It finds new qualifying road runs (Road running, not hill, not technical, ≥ 5 km) that are missing from `aerobic-efficiency-splits.csv`, fetches their splits and runs `update-dashboard.py`. If nothing qualifies it stops immediately. Skipping this step leaves the dashboard's aerobic efficiency chart stale.
+
+---
+
 ## Step 5: Report
 
 Tell the user:

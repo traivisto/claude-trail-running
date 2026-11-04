@@ -170,7 +170,7 @@ Extract from result:
 - `avg_hr_bpm`, `max_hr_bpm`
 - Derive pace from distance_meters / duration_seconds
 
-For HR zone breakdown, additionally call `mcp__garmin__get_activity_hr_in_timezones` with `activity_id` (number).
+For HR zone breakdown, do **not** use `mcp__garmin__get_activity_hr_in_timezones` — it uses Garmin's %HRmax boundaries, not the athlete's LTHR-based zones. Instead follow the *Activity analysis rule* in `CLAUDE.md`: compute the distribution with the zone boundaries from the `Athlete Config` block in `athlete-profile.md`, from `get_activity_fit_data` (`include_records=true`).
 
 ### 3. Compute derived values
 
@@ -178,8 +178,8 @@ For HR zone breakdown, additionally call `mcp__garmin__get_activity_hr_in_timezo
 distance_km  = distance / 1000
 duration_min = duration / 60
 elev_per_km  = elevationGain / distance_km   (skip if distance_km < 2)
-z_total      = sum(hrTimeInZone_1..5)
-z1_pct       = hrTimeInZone_1 / z_total × 100
+z_total      = total seconds of HR samples (from the athlete-zone distribution computed above)
+z1_pct       = seconds in athlete Z1 (HR ≤ hr_zone_z1_max) / z_total × 100
 start_hour   = hour from startTimeLocal
 actual_pace  = duration_min / distance_km
 ```
