@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "garmin": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--python", "3.12",
+        "--from", "git+https://github.com/Taxuspt/garmin_mcp",
+        "garmin-mcp"
+      ],
+      "env": {
+        "GARMINTOKENS": "/home/coach/.garminconnect"
+      }
+    },
+    "oura": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@daveremy/oura-mcp"],
+      "env": {
+        "OURA_TOKEN": "${OURA_TOKEN}"
+      }
+    }
+  }
+}
