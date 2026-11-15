@@ -21,18 +21,16 @@ description: >
 Generate a compact, coach-oriented training summary for a calendar month by reading
 from the local activity cache CSV. No Garmin API calls needed for cached months.
 
-## Step 0: Discover workspace
+## Step 0: Resolve athlete directory
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-Use the containing directory as **WORKSPACE**. All file references below are relative to it.
+All file references below are relative to **ATHLETE_DIR**.
 
-**Cache file:** `WORKSPACE/activity-cache.csv`
-**Athlete profile:** `WORKSPACE/athlete-profile.md` *(single source of truth for biometrics, training history, strengths and development areas — read when contextualising monthly data)*
-**Race card:** `WORKSPACE/race-card.md` *(single source of truth for goal race — read when mentioning the target race or assessing preparation progress)*
-**Events log:** `WORKSPACE/events-log.md` *(sickness, alcohol, travel, tests, milestones and other disruptions — always read this before writing observations, so volume dips and anomalies are explained by facts rather than guesses)*
+**Cache file:** `ATHLETE_DIR/activity-cache.csv`
+**Athlete profile:** `ATHLETE_DIR/athlete-profile.md` *(single source of truth for biometrics, training history, strengths and development areas — read when contextualising monthly data)*
+**Race card:** `ATHLETE_DIR/race-card.md` *(single source of truth for goal race — read when mentioning the target race or assessing preparation progress)*
+**Events log:** `ATHLETE_DIR/events-log.md` *(sickness, alcohol, travel, tests, milestones and other disruptions — always read this before writing observations, so volume dips and anomalies are explained by facts rather than guesses)*
 
 ---
 
@@ -40,8 +38,8 @@ Use the containing directory as **WORKSPACE**. All file references below are rel
 
 **Use the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale Cowork mount).
 
-1. Read `WORKSPACE/activity-cache.csv` with the Read tool. For a single recent month, read the tail using `offset` near end-of-file with `limit: 80` — covers ~40 days. For older months or multi-month analysis, read the full file (default `limit: 2000` covers ~6 years of cache at current rates).
-2. Read `WORKSPACE/events-log.md` — filter for entries whose date falls within the requested
+1. Read `ATHLETE_DIR/activity-cache.csv` with the Read tool. For a single recent month, read the tail using `offset` near end-of-file with `limit: 80` — covers ~40 days. For older months or multi-month analysis, read the full file (default `limit: 2000` covers ~6 years of cache at current rates).
+2. Read `ATHLETE_DIR/events-log.md` — filter for entries whose date falls within the requested
    month (or just before it, if an illness spans a month boundary). Note any SICK,
    TRAVEL, ALCOHOL, TEST, MILESTONE, or other disruption events so you can reference them later.
 3. Check whether the requested month falls within the cached date range.

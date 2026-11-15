@@ -23,18 +23,16 @@ overnight recovery signals from Garmin and Oura with recent training load from t
 activity cache and any recent events (illness, travel, disruptions) from the events log.
 The goal is one clear answer: what kind of session (if any) makes sense today?
 
-## Step -1: Discover workspace
+## Step -1: Resolve athlete directory
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-Use the containing directory as **WORKSPACE**. All file references below are relative to it.
+All file references below are relative to **ATHLETE_DIR**.
 
-**Cache file:** `WORKSPACE/activity-cache.csv`
-**Events log:** `WORKSPACE/events-log.md`
-**Athlete profile:** `WORKSPACE/athlete-profile.md` *(single source of truth for biometrics, HR zones, training history — the thresholds in Step 5 are derived from this file)*
-**Race card:** `WORKSPACE/race-card.md` *(single source of truth for race date, start time, course details, and target splits)*
+**Cache file:** `ATHLETE_DIR/activity-cache.csv`
+**Events log:** `ATHLETE_DIR/events-log.md`
+**Athlete profile:** `ATHLETE_DIR/athlete-profile.md` *(single source of truth for biometrics, HR zones, training history — the thresholds in Step 5 are derived from this file)*
+**Race card:** `ATHLETE_DIR/race-card.md` *(single source of truth for race date, start time, course details, and target splits)*
 
 ---
 
@@ -54,7 +52,7 @@ Call `mcp__garmin__get_sleep_summary` with `{"date": "YYYY-MM-DD"}` (today). Lig
 
 ### 0c: Activity cache
 Follow the **Activity cache sync rule in CLAUDE.md** (the single source of truth for cache freshness):
-1. Read `WORKSPACE/activity-cache.csv` (tail only, `offset` near end-of-file, `limit: 20`) to find the most recent cached `date`.
+1. Read `ATHLETE_DIR/activity-cache.csv` (tail only, `offset` near end-of-file, `limit: 20`) to find the most recent cached `date`.
 2. Call `mcp__garmin__get_activities_by_date` from the day **after** that date through today. This catches both stale caches and a planned workout completed earlier today.
 3. New activities returned → run the **activity-cache-updater** skill now, then continue. Nothing returned → cache confirmed current.
 4. Skip the Garmin call only if the cache was already synced earlier in this same session.
@@ -106,9 +104,9 @@ Call these tools simultaneously, and also read both local files:
    - Extracts: `readiness.score`, `readiness.contributors.body_temperature`, `readiness.temperature_deviation`, `readiness.temperature_trend_deviation`, `sleep.score`
    - If the call failed in Step 0a, skip Oura fields in the output card.
 
-7. **Read `WORKSPACE/activity-cache.csv` using the Read tool** — recent training history. Read only the tail (e.g., last ~50 rows) by using a large `offset` — this gives 14+ days of context at low token cost. Never read this file via bash (`cat`/`tail`/`head`) because the Cowork mount may be stale.
-8. **Read `WORKSPACE/events-log.md`** — illness, travel, and other disruptions
-9. **Read `WORKSPACE/current-plan.md`** — extract the entry for today's date to show what session is planned. If the file is missing or today's date is not within the plan period, skip silently.
+7. **Read `ATHLETE_DIR/activity-cache.csv` using the Read tool** — recent training history. Read only the tail (e.g., last ~50 rows) by using a large `offset` — this gives 14+ days of context at low token cost. Never read this file via bash (`cat`/`tail`/`head`) because the Cowork mount may be stale.
+8. **Read `ATHLETE_DIR/events-log.md`** — illness, travel, and other disruptions
+9. **Read `ATHLETE_DIR/current-plan.md`** — extract the entry for today's date to show what session is planned. If the file is missing or today's date is not within the plan period, skip silently.
 
 If Oura tools are unavailable or return errors, continue without them — Garmin data is sufficient.
 
@@ -142,7 +140,7 @@ Oura measures skin temperature from the finger during sleep and calculates devia
 - > 2.0°C → high — active fever territory, do not train
 
 **Body temperature contributor score (0–100):**
-- This is Oura's own scoring of the temperature signal. Found at `readiness.contributors.body_temperature` in oura-today.json. Scores < 50 flag a concern.
+- This is Oura's own scoring of the temperature signal. Found at `readiness.contributors.body_temperature` in the `oura_daily_summary` MCP response. Scores < 50 flag a concern.
 
 **Cross-referencing with events log:**
 - If there's an active SICK entry AND temperature is elevated, reinforce the illness signal.

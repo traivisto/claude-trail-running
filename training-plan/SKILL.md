@@ -7,23 +7,19 @@ description: "Creates a structured training plan for the athlete's trail running
 
 Creates a coaching-quality training plan, saves it as a draft, presents it for approval, then pushes to Garmin on confirmation.
 
-## Step 0: Discover workspace and load athlete config
+## Step 0: Resolve athlete directory and load athlete config
 
-Run this to find the workspace directory:
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
-
-Use the containing directory as **WORKSPACE**. Read `WORKSPACE/athlete-profile.md` and extract the `Athlete Config` block — you need the HR zone boundaries (`hr_zone_z1_max`, `hr_zone_z2_range`, `hr_zone_z3_range`, `hr_zone_z4_range`, `hr_zone_z5_range`) to set correct bpm targets for Garmin workouts. These vary per athlete and must not be hardcoded.
+Read `ATHLETE_DIR/athlete-profile.md` and extract the `Athlete Config` block — you need the HR zone boundaries (`hr_zone_z1_max`, `hr_zone_z2_range`, `hr_zone_z3_range`, `hr_zone_z4_range`, `hr_zone_z5_range`) to set correct bpm targets for Garmin workouts. These vary per athlete and must not be hardcoded.
 
 ## Key workspace files
 
-- **WORKSPACE/training-program.md** — phase/block context, volume ranges, session priorities. Always read this first.
-- **WORKSPACE/activity-cache.csv** — classified activity history. Read last 14 days for load context.
-- **WORKSPACE/events-log.md** — illness, travel, disruptions. Explains anomalies the watch can't.
-- **WORKSPACE/athlete-profile.md** — HR zones, biometrics. Already loaded in Step 0.
-- **WORKSPACE/current-plan.md** — active training plan (rolling, always overwritten when a new plan is created).
+- **ATHLETE_DIR/training-program.md** — phase/block context, volume ranges, session priorities. Always read this first.
+- **ATHLETE_DIR/activity-cache.csv** — classified activity history. Read last 14 days for load context.
+- **ATHLETE_DIR/events-log.md** — illness, travel, disruptions. Explains anomalies the watch can't.
+- **ATHLETE_DIR/athlete-profile.md** — HR zones, biometrics. Already loaded in Step 0.
+- **ATHLETE_DIR/current-plan.md** — active training plan (rolling, always overwritten when a new plan is created).
 
 ---
 
@@ -51,7 +47,7 @@ Do not assume and do not proceed until the date range is confirmed when today is
 
 ## Step 2: Check for conflicts with existing plans
 
-Read `WORKSPACE/current-plan.md` if it exists. Check:
+Read `ATHLETE_DIR/current-plan.md` if it exists. Check:
 - Its **status** (Draft or Approved)
 - Its **date range**
 
@@ -119,7 +115,7 @@ Fit sessions to the requested date range. Prioritise:
 
 ### Step 4b: Archive the previous plan before overwriting
 
-Before writing a new `current-plan.md`, check that the existing plan is already in `arkisto/` (compare its title/date range against `arkisto/training-plan-*.md`). If it is not, copy it to `arkisto/training-plan-YYYY-MM-DD.md` (date = today) **first**, then overwrite. Never overwrite `current-plan.md` before this check; a plan that was only in `current-plan.md` is otherwise lost.
+Before writing a new `current-plan.md`, check that the existing plan is already in `ATHLETE_DIR/arkisto/` (compare its title/date range against `ATHLETE_DIR/arkisto/training-plan-*.md`). If it is not, copy it to `ATHLETE_DIR/arkisto/training-plan-YYYY-MM-DD.md` (date = today) **first**, then overwrite. Never overwrite `current-plan.md` before this check; a plan that was only in `current-plan.md` is otherwise lost.
 
 ### Rest and load justifications in the plan
 
@@ -129,7 +125,7 @@ When the plan explains a rest day or an easy/hard choice, quote measured numbers
 
 ## Step 5: Save as Draft
 
-Save to `WORKSPACE/current-plan.md`. This is always the same file — it gets overwritten each time a new plan is created. History is preserved in the Garmin calendar (completed workouts) and the activity cache.
+Save to `ATHLETE_DIR/current-plan.md`. This is always the same file — it gets overwritten each time a new plan is created. History is preserved in the Garmin calendar (completed workouts) and the activity cache.
 
 Use this structure:
 

@@ -1,4 +1,12 @@
-# Personal athlete data — never commit these
+# Personal athlete data lives in athletes/<id>/ — never commit it
+# (each athlete directory may be its own separate private git repo)
+athletes/*
+!athletes/.gitkeep
+
+# Dev-local archive (old plugin builds, eval workspaces) — may contain personal data
+docs/archive/
+
+# Legacy root locations — kept for one release so a half-migrated checkout cannot leak
 athlete-profile.md
 race-card.md
 race-day-guide.md
@@ -7,6 +15,7 @@ current-plan.md
 events-log.md
 memory.md
 activity-cache.csv
+aerobic-efficiency-splits.csv
 training-dashboard.html
 
 # Runtime / generated files

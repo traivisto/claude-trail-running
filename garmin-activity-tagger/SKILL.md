@@ -15,13 +15,11 @@ description: >
 
 Classify a single Garmin activity into: **Purpose**, **Modality**, **Modifiers**, and **Time of day**.
 
-## Step 0: Discover workspace
+## Step 0: Resolve athlete directory
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-Use the containing directory as **WORKSPACE**. The Athlete Config block in `WORKSPACE/athlete-profile.md` is the source for all thresholds referenced below.
+The Athlete Config block in `ATHLETE_DIR/athlete-profile.md` is the source for all thresholds referenced below.
 
 ---
 

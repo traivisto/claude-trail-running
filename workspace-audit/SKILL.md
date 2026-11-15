@@ -20,13 +20,12 @@ actionable items. Report only — do not fix anything automatically.
 
 ---
 
-## Step 0: Discover workspace
+## Step 0: Locate the workspace root
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
-
-Use the containing directory as **WORKSPACE**. All checks below are relative to it.
+**WORKSPACE** is the code repo root — the directory that contains `CLAUDE.md`, `scripts/` and the skill
+folders (normally the current working directory). It is **not** an athlete directory: the audit checks
+the shared code, and personal data under `athletes/` must be absent from everything that would be
+released. Do not use bash `find /sessions`.
 
 ---
 
@@ -38,23 +37,23 @@ Check for files that should not be present in a clean release.
 WORKSPACE="<discovered path>"
 
 echo "=== __pycache__ ==="
-find "$WORKSPACE" -name '__pycache__' -not -path '*/arkisto/*' 2>/dev/null
+find "$WORKSPACE" -name '__pycache__' -not -path '*/docs/archive/*' -not -path '*/athletes/*' 2>/dev/null
 
-echo "=== *.skill files outside arkisto ==="
-find "$WORKSPACE" -name '*.skill' -not -path '*/arkisto/*' 2>/dev/null
+echo "=== *.skill files outside docs/archive ==="
+find "$WORKSPACE" -name '*.skill' -not -path '*/docs/archive/*' -not -path '*/athletes/*' 2>/dev/null
 
 echo "=== *.plugin files in root ==="
 find "$WORKSPACE" -maxdepth 1 -name '*.plugin' 2>/dev/null
 
 echo "=== Suspicious temp files (no extension, short random name) ==="
-find "$WORKSPACE" -maxdepth 2 -not -path '*/arkisto/*' -not -path '*/.git/*' \
+find "$WORKSPACE" -maxdepth 2 -not -path '*/docs/archive/*' -not -path '*/athletes/*' -not -path '*/.git/*' \
   -type f -not -name '*.*' 2>/dev/null | grep -E '/[a-zA-Z0-9]{6,12}$'
 ```
 
 **Flag rules:**
-- `__pycache__/` anywhere outside arkisto → ⚠️ (harmless but clutters repo)
-- `*.skill` files outside arkisto → ⚠️ (old packaging format, superseded)
-- `*.plugin` in workspace root → ⚠️ (should be in arkisto)
+- `__pycache__/` anywhere outside docs/archive → ⚠️ (harmless but clutters repo)
+- `*.skill` files outside docs/archive → ⚠️ (old packaging format, superseded)
+- `*.plugin` in workspace root → ⚠️ (should be in docs/archive)
 - Files with no extension and a short random-looking name → ❌ (build artifact)
 
 ### 1b: Required generic files present
@@ -62,28 +61,52 @@ find "$WORKSPACE" -maxdepth 2 -not -path '*/arkisto/*' -not -path '*/.git/*' \
 Verify that all non-personal files a new user needs are actually present in the workspace root.
 
 ```bash
-for f in update-dashboard.py update-dashboard.bat README.md CLAUDE.md; do
+for f in scripts/update-dashboard.py scripts/update-dashboard.bat scripts/resolve_athlete.py scripts/new-athlete.py docs/technical-notes.md README.md CLAUDE.md; do
   [ -f "$WORKSPACE/$f" ] && echo "EXISTS: $f" || echo "MISSING: $f"
 done
 ```
 
 Any missing file → ❌
 
-(`oura-fetch.py` is a legacy fallback — Oura is fetched via MCP connector. Its absence is not an error.)
+(The legacy `oura-fetch.py` was retired and archived; Oura is fetched via the MCP connector. Its absence is not an error.)
 
 ### 1c: .gitignore present and covers sensitive files
 
 ```bash
 if [ -f "$WORKSPACE/.gitignore" ]; then
   echo ".gitignore EXISTS"
-  grep -l 'oura.env\|telegram-config\|activity-cache\|oura-today' "$WORKSPACE/.gitignore" \
-    && echo "Sensitive files covered ✅" || echo "Sensitive files NOT covered ⚠️"
+  grep -q '^athletes/\*' "$WORKSPACE/.gitignore" \
+    && echo "athletes/ ignored ✅" || echo "athletes/ NOT ignored ❌"
+  grep -q '\.env' "$WORKSPACE/.gitignore" \
+    && echo "Credential files covered ✅" || echo "Credential files NOT covered ⚠️"
 else
   echo ".gitignore MISSING ⚠️"
 fi
 ```
 
-`.gitignore` absence → ⚠️ (not blocking now, but required before any git/GitHub setup)
+`.gitignore` absence → ⚠️ (not blocking now, but required before any git/GitHub setup).
+`athletes/*` not ignored → ❌.
+
+### 1d: Personal data is not in the code repo
+
+Personal files must live only under `athletes/<id>/`, never in the workspace root, and none may be
+tracked by git.
+
+```bash
+echo "=== personal files in root (must be none) ==="
+for f in athlete-profile.md race-card.md race-day-guide.md training-program.md current-plan.md \
+         events-log.md memory.md activity-cache.csv aerobic-efficiency-splits.csv \
+         training-dashboard.html telegram-last-update.txt telegram-conversation-log.md \
+         oura.env oura-today.json arkisto; do
+  [ -e "$WORKSPACE/$f" ] && echo "FOUND IN ROOT: $f"
+done
+echo "=== tracked personal data (must be none) ==="
+git -C "$WORKSPACE" ls-files | grep -E '^athletes/' | grep -v '^athletes/\.gitkeep$'
+git -C "$WORKSPACE" ls-files | grep -E '(^|/)(athlete-profile|race-card|race-day-guide|training-program|current-plan|events-log|memory|activity-cache|aerobic-efficiency-splits|training-dashboard)\.(md|csv|html)$' | grep -v '^setup-template/'
+```
+
+Any hit → ❌. (Git history may still contain earlier commits of such files; flag that a history
+rewrite is needed before publishing the repo.)
 
 ---
 
@@ -148,7 +171,8 @@ race date, geographic location tied to the athlete, or personal file paths.
 
 ```bash
 grep -rn 'C:\\Users\|/Users/\|/home/' "$WORKSPACE" \
-  --include='SKILL.md' 2>/dev/null
+  --include='SKILL.md' --include='*.py' --include='*.bat' --include='technical-notes.md' \
+  --exclude-dir=athletes --exclude-dir=archive --exclude-dir=.git 2>/dev/null
 ```
 
 Any match → ❌
@@ -181,7 +205,7 @@ Read `CLAUDE.md` with the Read tool and extract every skill path from the skill 
 ### 4b: List SKILL.md files on disk
 
 ```bash
-find "$WORKSPACE" -name 'SKILL.md' -not -path '*/arkisto/*' \
+find "$WORKSPACE" -name 'SKILL.md' -not -path '*/docs/archive/*' -not -path '*/athletes/*' \
   -not -path '*/setup-template/*' 2>/dev/null | sort
 ```
 
@@ -204,7 +228,7 @@ Check that no personal data files (csv, json with athlete data, personal logs) a
 present inside skill directories.
 
 ```bash
-find "$WORKSPACE" -path '*/arkisto' -prune -o \
+find "$WORKSPACE" -path '*/docs/archive' -prune -o -path '*/athletes' -prune -o \
   -path '*-updater' -prune -o \
   -mindepth 2 -maxdepth 3 -type f \
   -not -name 'SKILL.md' \
@@ -220,7 +244,7 @@ For `evals/` subfolders, check they contain only eval configuration (JSON with t
 not real athlete activity data:
 
 ```bash
-find "$WORKSPACE" -path '*/evals/*.json' -not -path '*/arkisto/*' 2>/dev/null | \
+find "$WORKSPACE" -path '*/evals/*.json' -not -path '*/docs/archive/*' -not -path '*/athletes/*' 2>/dev/null | \
   xargs -I{} sh -c 'echo "=== {} ===" && head -3 "{}"'
 ```
 
@@ -228,9 +252,10 @@ find "$WORKSPACE" -path '*/evals/*.json' -not -path '*/arkisto/*' 2>/dev/null | 
 
 ## Step 5: Path portability
 
-Every workflow SKILL.md must discover the workspace at runtime rather than relying on a
-hardcoded folder name. A hardcoded path like `claude-trail-running/activity-cache.csv`
-will silently break when a new user names their folder differently.
+Every workflow SKILL.md must resolve the athlete directory at runtime (`ATHLETE_DIR`, see
+`CLAUDE.md` → "Athlete directory") rather than relying on a hardcoded folder name or the
+Cowork-only `find /sessions` command. A hardcoded path like `claude-trail-running/activity-cache.csv`
+will silently break when a new user names their folder differently or runs on another machine.
 
 ### 5a: Check for hardcoded workspace folder references
 
@@ -239,27 +264,28 @@ will silently break when a new user names their folder differently.
 # Pattern: word-chars/filename.ext  where the prefix is not a variable
 grep -rn '[a-zA-Z0-9_-]\+/athlete-profile\|[a-zA-Z0-9_-]\+/activity-cache\|[a-zA-Z0-9_-]\+/race-card\|[a-zA-Z0-9_-]\+/events-log\|[a-zA-Z0-9_-]\+/current-plan' \
   "$WORKSPACE" --include='SKILL.md' 2>/dev/null | \
-  grep -v 'WORKSPACE/' | grep -v 'setup-template/'
+  grep -v 'ATHLETE_DIR/' | grep -v 'setup-template/'
 ```
 
-Any match that is not prefixed with `WORKSPACE/` or a bash variable → ❌
+Any match that is not prefixed with `ATHLETE_DIR/` or a bash variable → ❌. Also flag any remaining
+`find /sessions` in a SKILL.md → ❌ (Cowork-only discovery).
 
-### 5b: Check that workflow skills use workspace discovery
+### 5b: Check that workflow skills resolve ATHLETE_DIR
 
 ```bash
-# Each workflow SKILL.md should contain the find-based discovery command
-for skill_dir in activity-cache-updater coach-monthly-summary daily-readiness \
+# Each workflow SKILL.md should contain the ATHLETE_DIR resolution step and no Cowork-only find
+for skill_dir in activity-cache-updater aerobic-efficiency-updater coach-monthly-summary daily-readiness \
                  garmin-activity-tagger program-health-check quick-lookup training-plan; do
   f="$WORKSPACE/$skill_dir/SKILL.md"
-  if grep -q 'find /sessions' "$f" 2>/dev/null; then
-    echo "✅ $skill_dir — workspace discovery present"
+  if grep -q 'Resolve \*\*ATHLETE_DIR\*\*' "$f" 2>/dev/null && ! grep -q 'find /sessions' "$f"; then
+    echo "✅ $skill_dir — ATHLETE_DIR resolution present"
   else
-    echo "❌ $skill_dir — workspace discovery MISSING"
+    echo "❌ $skill_dir — ATHLETE_DIR resolution MISSING or Cowork-only find still present"
   fi
 done
 ```
 
-(garmin-mcp is reference-only and does not need workspace discovery.)
+(garmin-mcp is reference-only and does not need athlete-directory resolution.)
 
 ---
 
@@ -267,7 +293,7 @@ done
 
 ### 6a: setup-template/ files match README Step 1 table
 
-Read the README.md Step 1 table (the copy-from-setup-template instructions) and compare
+Read the README.md Step 1 instructions (`python scripts/new-athlete.py <id>` copies `setup-template/` to `athletes/<id>/`) and compare
 to the actual files in setup-template/. Flag any file mentioned in README but missing
 from setup-template/, or any file in setup-template/ not mentioned in README.
 
@@ -288,7 +314,7 @@ skill is added to CLAUDE.md but the README is not updated (or the reverse).
 ### 6d: Optional integrations documented
 
 Read README.md and verify it matches the **current architecture** (MCP-first):
-- Oura is documented as optional, fetched live via the `mcp__oura__` MCP connector (daveremy/oura-mcp). `oura-fetch.py` + `oura.env` may be mentioned only as a legacy/fallback path, not the primary method.
+- Oura is documented as optional, fetched live via the `mcp__oura__` MCP connector (daveremy/oura-mcp). `oura-fetch.py` + `oura.env` were retired; any mention must say so (not present them as a working fallback).
 - Telegram is documented as optional via the `telegram-nemo` Cowork plugin (`mcp__telegram-nemo__` tools), with silent skip when unavailable. References to the old `telegram-trail-coach.json` HTTP setup → ⚠️ outdated.
 - Neither integration is presented as required.
 

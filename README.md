@@ -16,17 +16,23 @@ Copy `claude_desktop_config.example.json` to `%APPDATA%\Claude\claude_desktop_co
 
 In Claude Desktop, open this folder as your Cowork workspace. Claude will read `CLAUDE.md` automatically and know how to use all the coaching skills.
 
-**Step 3 — Copy your workspace files**
+**Step 3 — Create your athlete directory**
 
-Copy these files from `setup-template/` to the workspace root:
+Personal data lives in its own directory, `athletes/<id>/`, which is git-ignored so it never ends up in the shared code. Create it from the template (use any short id, e.g. your first name in lowercase):
+
+```
+python scripts/new-athlete.py <id>
+```
+
+This copies `setup-template/` to `athletes/<id>/`. All file names below are inside that directory. If you have only one athlete directory, Claude and the scripts find it automatically; with several, set `COACH_ATHLETE_DIR` to the one to use (or tell Claude which athlete you mean).
 
 | File | What it is |
 |------|-----------|
 | `athlete-profile.md` | Your biometrics, HR zones, training history |
 | `race-card.md` | Your target race details |
 | `events-log.md` | Log for illness, travel, disruptions |
-| `memory.md` | Technical notes and coaching continuity |
-| `training-dashboard.html` | Blank dashboard — populated by `update-dashboard.py` |
+| `memory.md` | Athlete-specific notes and coaching continuity |
+| `training-dashboard.html` | Blank dashboard — populated by `scripts/update-dashboard.py` |
 
 **Step 4 — Fill in your athlete profile**
 
@@ -47,7 +53,7 @@ Claude can look up race details online and help structure aid stations, cutoffs,
 
 **Step 6 — Edit the dashboard header**
 
-Open `training-dashboard.html` in a text editor and update the name and race at the top:
+Open `athletes/<id>/training-dashboard.html` in a text editor and update the name and race at the top:
 
 ```html
 <title>[YOUR NAME] — Training Dashboard</title>
@@ -85,7 +91,7 @@ Claude builds a plan, saves it as a draft for you to review, then pushes session
 
 Generates a compact coaching summary from the local cache — no API calls needed. Works across multiple months for trend analysis.
 
-**Log a disruption** — Add a line to `events-log.md`:
+**Log a disruption** — Add a line to `athletes/<id>/events-log.md`:
 ```
 2026-03-17  SICK      Throat infection, rest day
 2026-03-20  CLEARED   Back to normal
@@ -109,15 +115,15 @@ The dashboard is a standalone HTML file (`training-dashboard.html`) that visuali
 - All-time modality breakdown (trail, road, swim, strength, etc.)
 - Full activity table with sort and filter
 
-**How it works:** `update-dashboard.py` reads `activity-cache.csv` and rewrites the data arrays inside the HTML. The script uses Python's standard library only — no external packages needed.
+**How it works:** `scripts/update-dashboard.py` reads `athletes/<id>/activity-cache.csv` and rewrites the data arrays inside `athletes/<id>/training-dashboard.html`. The script uses Python's standard library only — no external packages needed.
 
 **Updating:**
 ```
-python update-dashboard.py
+python scripts/update-dashboard.py [--athlete-dir athletes/<id>]
 ```
-Claude runs this automatically after every cache sync. You can also run it manually or double-click `update-dashboard.bat` on Windows.
+Claude runs this automatically after every cache sync. You can also run it manually or double-click `scripts\update-dashboard.bat` on Windows. `--athlete-dir` is only needed when there is more than one athlete directory and `COACH_ATHLETE_DIR` is not set.
 
-**For a new install:** Copy `setup-template/training-dashboard.html` to the workspace root, edit the name and race lines (Step 4 above), then run `update-dashboard.py` after building your cache.
+**For a new install:** `scripts/new-athlete.py` already copies the blank dashboard into your athlete directory; edit the name and race lines (Step 6 above), then run the update script after building your cache.
 
 ---
 
@@ -127,7 +133,7 @@ Claude runs this automatically after every cache sync. You can also run it manua
 Defines phases, blocks, volume ranges, and session priorities for the full season. The "why" behind weekly decisions. Updated only at major milestones: phase transitions, illness gaps, LTHR test results.
 
 **Level 2 — Tactical: `current-plan.md`**
-A concrete plan for a specific period (5 days, 1–2 weeks). Generated fresh on request by the `training-plan` skill — always overwrites the previous active plan. Saved as a draft first; pushed to Garmin only after your approval. Replaced plans are archived to `arkisto/` with a date-stamped filename.
+A concrete plan for a specific period (5 days, 1–2 weeks). Generated fresh on request by the `training-plan` skill — always overwrites the previous active plan. Saved as a draft first; pushed to Garmin only after your approval. Replaced plans are archived to `athletes/<id>/arkisto/` with a date-stamped filename.
 
 What goes to Garmin: running sessions + strength training, as `[Coach]`-prefixed workouts with absolute HR targets based on your LTHR zones. Swimming, walking, and rest days are noted in the plan file only.
 
@@ -204,22 +210,26 @@ Telegram is fully optional. To enable it:
 
 ## Key files
 
+Personal files (✅) live in `athletes/<id>/` and are git-ignored; shared files (⬜) are in the code repo.
+
 | File | Purpose | Personal? |
 |------|---------|-----------|
-| `athlete-profile.md` | Your biometrics, HR zones, training history. Fill in once, update after tests. | ✅ |
-| `race-card.md` | Target race: course overview, aid stations, cutoffs, target splits. Coaching reference. | ✅ |
-| `race-day-guide.md` | Race execution detail: heat management, nutrition plan, drop bag, checklists. | ✅ |
-| `training-program.md` | Season plan: phases, blocks, priorities, volume ranges. Generated by Claude. | ✅ |
-| `events-log.md` | Log of illness, travel, and other disruptions. Edit manually. | ✅ |
-| `memory.md` | Technical notes and cross-session coaching continuity. | ✅ |
+| `athletes/<id>/athlete-profile.md` | Your biometrics, HR zones, training history. Fill in once, update after tests. | ✅ |
+| `athletes/<id>/race-card.md` | Target race: course overview, aid stations, cutoffs, target splits. Coaching reference. | ✅ |
+| `athletes/<id>/race-day-guide.md` | Race execution detail: heat management, nutrition plan, drop bag, checklists. | ✅ |
+| `athletes/<id>/training-program.md` | Season plan: phases, blocks, priorities, volume ranges. Generated by Claude. | ✅ |
+| `athletes/<id>/events-log.md` | Log of illness, travel, and other disruptions. Edit manually. | ✅ |
+| `athletes/<id>/memory.md` | Athlete-specific setup and cross-session coaching continuity. | ✅ |
+| `athletes/<id>/activity-cache.csv` | All classified activities. The central data store. | ✅ |
+| `athletes/<id>/training-dashboard.html` | Visual training overview. Open in browser. Auto-regenerated after cache sync. | ✅ |
+| `athletes/<id>/current-plan.md` | Active training plan (rolling). Overwritten when a new plan is created; previous plan archived to `athletes/<id>/arkisto/`. | ✅ |
 | `CLAUDE.md` | Active coaching rules Claude follows automatically. | ⬜ |
-| `activity-cache.csv` | All classified activities. The central data store. | ✅ |
-| `training-dashboard.html` | Visual training overview. Open in browser. Auto-regenerated after cache sync. | ✅ |
-| `update-dashboard.py` | Regenerates the dashboard from the cache. No external dependencies. | ⬜ |
-| `update-dashboard.bat` | Windows shortcut to run the dashboard script. | ⬜ |
-| `oura-fetch.py` | Legacy fallback for Oura data (writes `oura-today.json`). Not needed — Oura is fetched live via the MCP connector (see above). | ⬜ |
-| `current-plan.md` | Active training plan (rolling). Overwritten when a new plan is created; previous plan archived to `arkisto/`. | ✅ |
-| `setup-template/` | Blank starting files for new athletes. Copy to workspace root. | ⬜ |
+| `docs/technical-notes.md` | Connector setup, Garmin/Oura quirks, workout-structure rules. | ⬜ |
+| `scripts/update-dashboard.py` | Regenerates the dashboard from the cache. No external dependencies. | ⬜ |
+| `scripts/update-dashboard.bat` | Windows shortcut to run the dashboard script. | ⬜ |
+| `scripts/new-athlete.py` | Creates `athletes/<id>/` from the template. | ⬜ |
+| `scripts/resolve_athlete.py` | Finds the athlete directory (`$COACH_ATHLETE_DIR` or the single `athletes/*`). | ⬜ |
+| `setup-template/` | Blank starting files for new athletes; copied by `scripts/new-athlete.py`. | ⬜ |
 
 ---
 
@@ -229,6 +239,6 @@ Telegram is fully optional. To enable it:
 
 **Activity cache is stale** — Ask: *"Update my activity cache"*. Requires Garmin MCP running.
 
-**Training dashboard shows old data** — Run `python update-dashboard.py` from the workspace folder, or double-click `update-dashboard.bat`.
+**Training dashboard shows old data** — Run `python scripts/update-dashboard.py` from the workspace folder, or double-click `scripts\update-dashboard.bat`.
 
 **Skills not triggering** — Skills in this workspace are loaded directly from their `SKILL.md` files in subdirectories (e.g. `daily-readiness/SKILL.md`). No global installation needed. If a skill isn't running, check that the subdirectory and SKILL.md file exist.

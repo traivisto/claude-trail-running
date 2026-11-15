@@ -1,8 +1,17 @@
 # Trail Running Coaching System
 
-This folder contains a trail running coaching system. Personal data (athlete profile, race goals, training history) lives in the workspace files. Skills handle the coaching logic.
+This folder contains a trail running coaching system. The code (skills, scripts, templates, this file) is shared and contains no personal data. Each athlete's personal data (profile, race goals, caches, plans, history) lives in its own directory under `athletes/<id>/`, which is git-ignored. Skills handle the coaching logic.
 
-**Skills discover this workspace automatically** by searching for `athlete-profile.md` — no hardcoded paths needed. To set up for a new athlete, update `athlete-profile.md` with their data and create a `race-card.md` for their goal race.
+## Athlete directory (ATHLETE_DIR)
+
+All personal files are read from and written to **`ATHLETE_DIR`** = `athletes/<id>/` (relative to this workspace root). Every bare filename in this file and in the skills (`athlete-profile.md`, `race-card.md`, `activity-cache.csv`, `events-log.md`, `memory.md`, `current-plan.md`, `training-program.md`, `race-day-guide.md`, `training-dashboard.html`, `aerobic-efficiency-splits.csv`, `telegram-last-update.txt`, `arkisto/`) means `ATHLETE_DIR/<that file>`.
+
+**Resolve ATHLETE_DIR at the start of every workflow, in this order:**
+1. `$COACH_ATHLETE_DIR`, if set (used for headless/NAS runs and multi-athlete setups);
+2. otherwise Glob `athletes/*/athlete-profile.md` — if exactly one match, use its directory;
+3. if there are several matches and none was named by the user, ask which athlete. Never guess between athletes and never mix files from two athlete directories.
+
+Python scripts use `scripts/resolve_athlete.py`, which applies the same rules. To set up a new athlete run `python scripts/new-athlete.py <id>`, then fill in `athlete-profile.md` and `race-card.md` in the new directory.
 
 ## Workspace skills
 
@@ -27,7 +36,7 @@ Always prefer a skill over ad-hoc reasoning when one matches the request.
 Before making any Garmin MCP tool calls, read `garmin-mcp/SKILL.md` for tool selection, parameter formats, response field names, and known quirks. This prevents common mistakes (wrong activity_id type, using get_sleep_data instead of get_sleep_summary, wrong HR zone approach, etc.).
 
 ## Athlete context rule
-Before answering any coaching question — including gear, pacing, race strategy, training, or health — always read `athlete-profile.md` and `race-card.md` first. Do not rely on general knowledge when athlete-specific data is available. This applies even to seemingly simple questions where the answer might differ based on the athlete's profile, race distance, or history.
+Before answering any coaching question — including gear, pacing, race strategy, training, or health — always resolve ATHLETE_DIR and read `athlete-profile.md` and `race-card.md` from it first. Do not rely on general knowledge when athlete-specific data is available. This applies even to seemingly simple questions where the answer might differ based on the athlete's profile, race distance, or history.
 
 ## Activity analysis rule — HR zones
 Whenever a single activity's heart rate is analysed (e.g. "how did today's run look?", interval review, zone distribution), read `garmin-mcp/SKILL.md` and the `Athlete Config` block in `athlete-profile.md` first.
@@ -38,12 +47,16 @@ Whenever a single activity's heart rate is analysed (e.g. "how did today's run l
 4. If the fit data is unavailable, fall back to lap-level avg/max HR from `get_activity_splits` and state that the zone split is approximate.
 
 ## Technical memory
-`memory.md` contains technical notes and evolving coaching observations that don't fit the structured files above — including known API quirks, connector setup details, and coaching insights accumulated over time. Read it when troubleshooting connector issues, when a skill behaves unexpectedly, or when answering questions about training history context not covered in athlete-profile.md.
+Two files, by scope:
+- `docs/technical-notes.md` (shared, athlete-independent) — connector setup, known API quirks, workout-structure rules, Cowork mount staleness. Read it when troubleshooting connector issues or when a skill behaves unexpectedly.
+- `ATHLETE_DIR/memory.md` (this athlete) — athlete-specific setup (bot/chat IDs, credentials locations), evolving coaching observations and permanent coaching decisions. Read it when answering questions about training history context not covered in athlete-profile.md.
 
 ## Events log scope
-`events-log.md` is the canonical store for any **date-bound event tied to this athlete** that isn't a training session — sickness, travel, alcohol, stress, lab/field tests, milestones, gear changes. When a relevant event surfaces in conversation (e.g. "tein LTHR-testin tänään", "lensin Berliiniin", "uudet kengät"), append it to events-log.md proactively, in the documented format. Permanent technical knowledge (API quirks, connector setup) stays in `memory.md`; one-off events go to `events-log.md`.
+`events-log.md` is the canonical store for any **date-bound event tied to this athlete** that isn't a training session — sickness, travel, alcohol, stress, lab/field tests, milestones, gear changes. When a relevant event surfaces in conversation (e.g. "tein LTHR-testin tänään", "lensin Berliiniin", "uudet kengät"), append it to events-log.md proactively, in the documented format. Permanent technical knowledge (API quirks, connector setup) stays in `docs/technical-notes.md`, athlete-specific lasting observations in `ATHLETE_DIR/memory.md`; one-off events go to `events-log.md`.
 
 ## File reading rule — Cowork mount staleness
+**Applies only when running in Cowork's Linux sandbox** (not in headless runs on a normal filesystem, e.g. NAS, nor in Claude Code on the host OS). Details in `docs/technical-notes.md`.
+
 Cowork's Linux sandbox sees workspace files through a mount that is essentially a session-start snapshot with an overlay for in-session edits. **External changes that happen during a session do not propagate to the bash view.** This affects `activity-cache.csv` whenever it has been updated by Garmin sync or `update-dashboard.py` outside Cowork, and any other file written by something other than Claude's Edit/Write tools.
 
 **Rule:** Read workspace files using the Read tool, never via `cat`, `head`, `tail`, `grep`, or other bash commands. Use bash only for computation (Python aggregations, classification logic, etc.) — and even then, feed file content via Read-tool output, not by reading from the mount.
@@ -66,7 +79,7 @@ The cache must be current before any coaching analysis. **Always sync at the sta
 In all cases: do not wait for the user to ask, and do not skip the sync in favour of answering faster.
 
 ## Dashboard update rule
-After every activity cache sync (activity-cache-updater skill), first run the `aerobic-efficiency-updater` skill (fetches splits for new qualifying road runs; it is a no-op if there are none), then always run `update-dashboard.py` from this folder (use the absolute path to this workspace folder). This regenerates training-dashboard.html from the updated cache. Tell the user to refresh the dashboard in their browser.
+After every activity cache sync (activity-cache-updater skill), first run the `aerobic-efficiency-updater` skill (fetches splits for new qualifying road runs; it is a no-op if there are none), then always run `python scripts/update-dashboard.py` from the workspace root (`python3` on Linux; add `--athlete-dir <ATHLETE_DIR>` when ATHLETE_DIR is not the only athlete). This regenerates `ATHLETE_DIR/training-dashboard.html` from the updated cache. Tell the user to refresh the dashboard in their browser.
 
 ## Garmin workout creation rules
 
@@ -85,13 +98,13 @@ Use the `training-plan` skill for all training plan creation. The skill handles 
 - Checks for conflicts with existing approved plans before proceeding
 - Saves draft to `current-plan.md` (always overwrites the previous active plan) and presents for approval
 - Pushes to Garmin only after explicit approval (running + strength to Garmin, swimming/walking/rest noted in file only)
-- Archives the previous plan to `arkisto/` with a date-stamped filename when replaced
+- Archives the previous plan to `ATHLETE_DIR/arkisto/` with a date-stamped filename when replaced
 
 ## Optional: Oura Ring
-Oura data is fetched live via the `mcp__oura__` MCP tools (daveremy/oura-mcp, token stored in Cowork MCP config). Skills call `mcp__oura__oura_daily_summary` directly — no local file or script needed. If the MCP tools are unavailable, all skills continue with Garmin data only.
+Oura data is fetched live via the `mcp__oura__` MCP tools (daveremy/oura-mcp, token stored in the MCP config). Skills call `mcp__oura__oura_daily_summary` directly — no local file or script needed (the legacy `oura-fetch.py` was retired). If the MCP tools are unavailable, all skills continue with Garmin data only.
 
 ## Optional: Telegram remote interface
-A Telegram bot can be used as a remote interface — send coaching questions and log status updates from your phone without opening Cowork. Requires the `telegram-nemo` Cowork plugin to be installed and configured with a bot token. If the plugin is not installed or the `mcp__telegram-nemo__` tools are unavailable, skip all Telegram steps silently — no error, no prompt to the user. State is tracked in `telegram-last-update.txt` in the workspace. A scheduled task polls for new messages hourly. See `memory.md` for bot setup details specific to this athlete's installation.
+A Telegram bot can be used as a remote interface — send coaching questions and log status updates from your phone without opening Cowork. Requires the `telegram-nemo` Cowork plugin to be installed and configured with a bot token. If the plugin is not installed or the `mcp__telegram-nemo__` tools are unavailable, skip all Telegram steps silently — no error, no prompt to the user. State is tracked in `ATHLETE_DIR/telegram-last-update.txt`. A scheduled task polls for new messages hourly. See `ATHLETE_DIR/memory.md` for bot setup details specific to this athlete's installation and `docs/technical-notes.md` for the design.
 
 ## Load and rest reasoning rule
 Rest and load recommendations must be grounded in measured data and must not present program structure as a physiological need.

@@ -1,30 +1,30 @@
 @echo off
 :: update-dashboard.bat
-:: Refreshes training-dashboard.html from the latest activity-cache.csv.
+:: Refreshes the athlete training-dashboard.html from the latest activity-cache.csv.
 :: Tries several ways to find Python on Windows.
 
-cd /d "%~dp0"
+cd /d "%~dp0.."
 echo Updating training dashboard...
 echo.
 
 :: Try the Windows Python Launcher first (installed with most Python versions)
 where py >nul 2>&1
 if %errorlevel% equ 0 (
-    py update-dashboard.py
+    py scripts\update-dashboard.py
     goto :check
 )
 
 :: Try plain python
 where python >nul 2>&1
 if %errorlevel% equ 0 (
-    python update-dashboard.py
+    python scripts\update-dashboard.py
     goto :check
 )
 
 :: Try python3
 where python3 >nul 2>&1
 if %errorlevel% equ 0 (
-    python3 update-dashboard.py
+    python3 scripts\update-dashboard.py
     goto :check
 )
 
@@ -39,7 +39,7 @@ for %%P in (
     "C:\Python311\python.exe"
 ) do (
     if exist %%P (
-        %%P update-dashboard.py
+        %%P scripts\update-dashboard.py
         goto :check
     )
 )
@@ -49,7 +49,7 @@ echo.
 echo Options:
 echo   1. Install Python from https://python.org  (tick "Add to PATH")
 echo   2. Open this folder in VS Code, open Terminal, and run:
-echo         python update-dashboard.py
+echo         python scripts\update-dashboard.py
 echo.
 pause
 exit /b 1

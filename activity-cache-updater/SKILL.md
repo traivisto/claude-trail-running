@@ -13,23 +13,19 @@ description: >
 Fetch new Garmin activities since the last cached date, classify each one using the
 garmin-activity-tagger logic, and append them to the local CSV cache.
 
-## Step 0: Discover workspace
+## Step 0: Resolve athlete directory
 
-Run this to find the workspace directory:
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
+All file references below are relative to **ATHLETE_DIR**.
 
-Use the containing directory as **WORKSPACE**. All file references below are relative to it.
-
-**Cache file:** `WORKSPACE/activity-cache.csv`
+**Cache file:** `ATHLETE_DIR/activity-cache.csv`
 
 ---
 
 ## Step 1: Read the cache and find the frontier
 
-1. Read `WORKSPACE/activity-cache.csv` **using the Read tool** (not bash — bash sees a stale Cowork mount; see CLAUDE.md File reading rule). For efficiency, read only the tail (`offset` near end-of-file with `limit: 50`) to find the most recent date; that is enough for the frontier check. Read additional chunks only if needed for `activity_id` deduplication of unusually long backfills.
+1. Read `ATHLETE_DIR/activity-cache.csv` **using the Read tool** (not bash — bash sees a stale Cowork mount; see CLAUDE.md File reading rule). For efficiency, read only the tail (`offset` near end-of-file with `limit: 50`) to find the most recent date; that is enough for the frontier check. Read additional chunks only if needed for `activity_id` deduplication of unusually long backfills.
 2. Find the **most recent `date`** value in the file (last row if sorted, but scan to be safe).
 3. Note the set of all `activity_id` values already in the cache (for deduplication).
 4. Report to the user: "Cache currently covers up to [date]. Checking for new activities…"
@@ -104,13 +100,15 @@ rpe, feel
 
 **Backfill note:** If the cache header does not yet include `rpe` and `feel` columns, the first sync after the schema change must add them. Extend the header line to include the two new columns, and left-pad existing rows with two empty trailing fields so column alignment is preserved. Do not re-tag or re-fetch old activities — just add the empty columns.
 
-**Append new rows using bash, not the Edit tool.** The Edit tool writes to the Windows filesystem but the bash sandbox sees a session-start mount snapshot — changes made via Edit are invisible to Python scripts (including `update-dashboard.py`) until the session restarts. Use `echo '...' >> /sessions/.../activity-cache.csv` (bash path) to append each row, then verify with `tail -2` before running the dashboard script.
+**How to append rows depends on where you run.**
+- **Cowork Linux sandbox:** append with bash, not the Edit tool. The Edit tool writes to the Windows filesystem but the bash sandbox sees a session-start mount snapshot, so changes made via Edit are invisible to Python scripts (including `scripts/update-dashboard.py`) until the session restarts. Use `echo '...' >> ATHLETE_DIR/activity-cache.csv` (the sandbox path of ATHLETE_DIR) for each row, then verify with `tail -2` before running the dashboard script.
+- **Normal filesystem (Claude Code on the host, headless/NAS runs):** the Edit/Write tools and bash see the same file, so either works; verify the last rows afterwards.
 
 ---
 
 ## Step 4b: Update the aerobic efficiency splits cache
 
-After appending rows, run **`aerobic-efficiency-updater/SKILL.md`**. It finds new qualifying road runs (Road running, not hill, not technical, ≥ 5 km) that are missing from `aerobic-efficiency-splits.csv`, fetches their splits and runs `update-dashboard.py`. If nothing qualifies it stops immediately. Skipping this step leaves the dashboard's aerobic efficiency chart stale.
+After appending rows, run **`aerobic-efficiency-updater/SKILL.md`**. It finds new qualifying road runs (Road running, not hill, not technical, ≥ 5 km) that are missing from `aerobic-efficiency-splits.csv`, fetches their splits and runs `scripts/update-dashboard.py`. If nothing qualifies it stops immediately. Skipping this step leaves the dashboard's aerobic efficiency chart stale.
 
 ---
 

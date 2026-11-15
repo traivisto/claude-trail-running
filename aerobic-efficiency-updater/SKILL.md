@@ -14,25 +14,21 @@ splits cache, and append them to `aerobic-efficiency-splits.csv`.
 
 ---
 
-## Step 0: Locate workspace
+## Step 0: Resolve athlete directory
 
-Find the workspace:
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
-Use the containing directory as **WORKSPACE**.
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
 ---
 
 ## Step 1: Find qualifying activities not yet cached
 
-Read `WORKSPACE/activity-cache.csv` and filter for:
+Read `ATHLETE_DIR/activity-cache.csv` and filter for:
 - `modality` == `Road running`
 - `hill` == `False`
 - `technical_terrain` == `False`
 - `distance_km` >= 5.0
 
-Read `WORKSPACE/aerobic-efficiency-splits.csv` and collect all unique `activity_id` values already present.
+Read `ATHLETE_DIR/aerobic-efficiency-splits.csv` and collect all unique `activity_id` values already present.
 
 Subtract: qualifying activities whose `activity_id` is NOT in the splits cache are the **targets**.
 
@@ -62,7 +58,7 @@ For each lap in the response, collect:
 
 ## Step 3: Append to splits cache
 
-Append all new lap rows to `WORKSPACE/aerobic-efficiency-splits.csv`.
+Append all new lap rows to `ATHLETE_DIR/aerobic-efficiency-splits.csv`.
 
 The CSV columns are:
 ```
@@ -73,11 +69,11 @@ Use the **Write** tool to append (read current contents first, then write the fu
 
 ---
 
-## Step 4: Run update-dashboard.py
+## Step 4: Run scripts/update-dashboard.py
 
 After the cache is updated, run:
 ```bash
-cd WORKSPACE && python update-dashboard.py
+python scripts/update-dashboard.py --athlete-dir <ATHLETE_DIR>   # from the workspace root; python3 on Linux
 ```
 
 This recomputes all efficiency scores from the cached splits and regenerates the dashboard.
@@ -87,6 +83,6 @@ This recomputes all efficiency scores from the cached splits and regenerates the
 ## Notes
 
 - `activity_id` in Garmin MCP calls must always be a **number** (integer), not a string.
-- The splits cache intentionally stores all laps, not just qualifying ones — filtering happens in `update-dashboard.py` at score computation time, so zone definition changes don't require re-fetching.
+- The splits cache intentionally stores all laps, not just qualifying ones — filtering happens in `scripts/update-dashboard.py` at score computation time, so zone definition changes don't require re-fetching.
 - Garmin `get_activity_splits` returns auto-lap (1 km) splits. Sub-400m laps are kept in the cache but filtered out during score computation.
 - Temperature data is not currently included; add `temperature_c` column in a future iteration if needed.

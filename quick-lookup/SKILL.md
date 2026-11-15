@@ -19,20 +19,18 @@ description: >
 Answer factual questions from local workspace files without making any API calls.
 The goal is a fast, direct answer — one or two sentences, a number, or a short table.
 
-## Step 0: Discover workspace
+## Step 0: Resolve athlete directory
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-Use the containing directory as **WORKSPACE**. All file references below are relative to it.
+All file references below are relative to **ATHLETE_DIR**.
 
 **Workspace files:**
-- `WORKSPACE/activity-cache.csv` — training history (distance, HR, purpose, tags)
-- `WORKSPACE/race-card.md` — race logistics (start time, cutoffs, splits, course)
-- `WORKSPACE/race-day-guide.md` — nutrition, heat management, drop bag, checklists
-- `WORKSPACE/events-log.md` — upcoming disruptions, illness, travel, tests, milestones
-- `WORKSPACE/training-program.md` — current phase, milestones, program structure
+- `ATHLETE_DIR/activity-cache.csv` — training history (distance, HR, purpose, tags)
+- `ATHLETE_DIR/race-card.md` — race logistics (start time, cutoffs, splits, course)
+- `ATHLETE_DIR/race-day-guide.md` — nutrition, heat management, drop bag, checklists
+- `ATHLETE_DIR/events-log.md` — upcoming disruptions, illness, travel, tests, milestones
+- `ATHLETE_DIR/training-program.md` — current phase, milestones, program structure
 
 ---
 

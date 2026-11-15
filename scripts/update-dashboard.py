@@ -2,10 +2,10 @@
 """
 update-dashboard.py
 ───────────────────
-Reads activity-cache.csv and rewrites all static data arrays in
-training-dashboard.html.  Run after every cache update:
+Reads <athlete>/activity-cache.csv and rewrites all static data arrays in
+<athlete>/training-dashboard.html.  Run after every cache update:
 
-    python3 update-dashboard.py
+    python3 scripts/update-dashboard.py [--athlete-dir <path>]
 
 No external dependencies — pure stdlib.
 """
@@ -16,7 +16,14 @@ from datetime import date, timedelta
 from pathlib import Path
 
 # ── Paths ──────────────────────────────────────────────────────────────────
-BASE         = Path(__file__).parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from resolve_athlete import resolve  # noqa: E402
+
+# Athlete data dir: --athlete-dir <path>, else $COACH_ATHLETE_DIR, else the single athletes/* dir
+if "--athlete-dir" in sys.argv:
+    BASE = Path(sys.argv[sys.argv.index("--athlete-dir") + 1]).resolve()
+else:
+    BASE = resolve()
 CACHE        = BASE / "activity-cache.csv"
 SPLITS_CACHE = BASE / "aerobic-efficiency-splits.csv"
 DASH  = BASE / "training-dashboard.html"

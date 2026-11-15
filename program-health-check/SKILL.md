@@ -29,13 +29,10 @@ skill explicitly.
 
 ---
 
-## Step 0: Discover workspace
+## Step 0: Resolve athlete directory
 
-```bash
-find /sessions -maxdepth 4 -name 'athlete-profile.md' 2>/dev/null | head -1
-```
+Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COACH_ATHLETE_DIR` if set, otherwise Glob `athletes/*/athlete-profile.md` (exactly one match → its directory; several → ask which athlete). Do not use bash `find`.
 
-Use the containing directory as **WORKSPACE**.
 
 ---
 
@@ -43,11 +40,11 @@ Use the containing directory as **WORKSPACE**.
 
 Read these files **using the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale Cowork mount):
 
-1. `WORKSPACE/training-program.md` — phase map, volume ranges, session priorities per phase, current position, explicit race-specific milestones
-2. `WORKSPACE/race-card.md` — race date, start time, distance, elevation, terrain notes
-3. `WORKSPACE/athlete-profile.md` Athlete Config — `typical_weekly_km`, `long_run_threshold_km`, `hill_modifier_threshold_m_per_km`, HRV/RHR baselines
-4. `WORKSPACE/activity-cache.csv` — classified activity history. For 8-week window, read the tail using `offset` near end-of-file with `limit: 200` — covers 100 days even at high session frequency, at much lower token cost than the full file.
-5. `WORKSPACE/events-log.md` — illness, travel, disruptions, tests, milestones (last 60 days)
+1. `ATHLETE_DIR/training-program.md` — phase map, volume ranges, session priorities per phase, current position, explicit race-specific milestones
+2. `ATHLETE_DIR/race-card.md` — race date, start time, distance, elevation, terrain notes
+3. `ATHLETE_DIR/athlete-profile.md` Athlete Config — `typical_weekly_km`, `long_run_threshold_km`, `hill_modifier_threshold_m_per_km`, HRV/RHR baselines
+4. `ATHLETE_DIR/activity-cache.csv` — classified activity history. For 8-week window, read the tail using `offset` near end-of-file with `limit: 200` — covers 100 days even at high session frequency, at much lower token cost than the full file.
+5. `ATHLETE_DIR/events-log.md` — illness, travel, disruptions, tests, milestones (last 60 days)
 
 If the cache's most recent date is older than yesterday, run the
 `activity-cache-updater` skill first, then continue.
