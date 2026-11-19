@@ -112,3 +112,11 @@ Rest and load recommendations must be grounded in measured data and must not pre
 1. **Numbers before verdicts.** When recommending rest, a lighter session or a harder one, base it on measured figures and quote them: age and size of the last hard session, last 7 days' load, ACWR, Garmin/Oura readiness, HRV vs weekly average. Do not use vague words such as "moderate load" or "heavy week" without a number. Light activity (easy swim, walk, short Z1) is not counted as load unless the data says so.
 2. **Separate the two kinds of reason.** State explicitly whether a decision is (a) program structure (e.g. "Monday is a rest day in the program", a convention that can be changed) or (b) a physiological need (readiness, HRV, soreness, illness). Never present (a) as if it were (b).
 3. **Small signals stay small.** A weak signal (HRV dip within BALANCED, one sensitive-HR run) is used for the go/no-go on the next hard session, not as grounds for blocking easy activity the same day.
+
+## Development backlog (coach-backlog.md)
+`ATHLETE_DIR/coach-backlog.md` is a list of development needs that came up in Telegram chat (a missing
+tool, script or permission), written by the chat bot only after the athlete agreed. Chat runs cannot edit
+code; development happens in interactive SSH sessions. **At the start of an interactive session
+(not a headless `-p` run), if the backlog has `[open]` entries, list them in one line each and ask which
+to work on.** When an entry is done, change its tag to `[done YYYY-MM-DD]` and note the commit. The file
+lives in the athlete directory, so it is git-ignored like all personal data.

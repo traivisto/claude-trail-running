@@ -57,23 +57,42 @@ from resolve_athlete import resolve  # noqa: E402
 TZ = ZoneInfo("Europe/Helsinki")
 WORKSPACE = Path(__file__).resolve().parent.parent
 PROMPT_FILE = Path(__file__).resolve().parent / "prompts" / "telegram-poll.md"
-# Read-only Garmin tools + the whole Oura server (read-only).
+# Read-only Garmin tools (training, activities, health metrics) + the whole Oura server (read-only).
+# Deliberately left out: get_activity_hr_in_timezones (Garmin's %HRmax zones; use scripts/hr_zones.py),
+# menstrual/pregnancy data, device settings/alarms, badges/challenges, nutrition.
 GARMIN_READ_TOOLS = ",".join("mcp__garmin__" + t for t in (
-    "get_activities_by_date", "get_activity", "get_activity_splits", "get_activity_fit_data",
-    "get_sleep_summary",
-    "get_training_readiness", "get_morning_training_readiness", "get_training_status",
-    "get_hrv_data", "get_body_battery", "get_rhr_day", "get_stats", "get_stress_summary",
-    "get_scheduled_workouts", "get_workouts", "get_race_predictions", "get_vo2max_trend"))
-# Workout planning (training-plan skill step 7): create, schedule and clean up [Coach] workouts.
-# No delete_activity, no body-composition/weight/nutrition/gear/profile writes. The prompt additionally
-# requires an explicit athlete approval of a saved draft before any of these is called.
-GARMIN_WORKOUT_TOOLS = ",".join("mcp__garmin__" + t for t in (
-    "upload_workout", "schedule_workout", "delete_workout"))
+    "count_activities", "get_acclimation", "get_activities", "get_activities_by_date",
+    "get_activities_fordate", "get_activity", "get_activity_exercise_sets", "get_activity_fit_data",
+    "get_activity_gear", "get_activity_power_in_timezones", "get_activity_split_summaries",
+    "get_activity_splits", "get_activity_typed_splits", "get_activity_types", "get_activity_weather",
+    "get_all_day_events", "get_all_day_stress", "get_body_battery", "get_body_battery_events",
+    "get_body_composition", "get_calendar_events", "get_cycling_ftp", "get_daily_steps",
+    "get_daily_weigh_ins", "get_devices", "get_endurance_score", "get_energy_balance",
+    "get_fitnessage_data", "get_floors", "get_garmin_coach_workouts", "get_gear", "get_goals",
+    "get_heart_rate_zones", "get_heart_rates", "get_heart_rates_summary", "get_hill_score",
+    "get_hrv_data", "get_hrv_trend", "get_lactate_threshold", "get_morning_training_readiness",
+    "get_personal_record", "get_power_duration_curve", "get_primary_training_device",
+    "get_progress_summary_between_dates", "get_race_predictions", "get_recovery_time_remaining",
+    "get_respiration_summary", "get_respiration_trend", "get_rhr_day", "get_running_tolerance",
+    "get_running_tolerance_trend", "get_scheduled_workouts", "get_sleep_data", "get_sleep_summary",
+    "get_sleep_summary_range", "get_spo2_data", "get_stats", "get_stats_and_body", "get_stats_range",
+    "get_steps_data", "get_stress_data", "get_stress_summary", "get_training_effect",
+    "get_training_load_balance", "get_training_load_trend", "get_training_plan_workouts",
+    "get_training_readiness", "get_training_status", "get_user_summary", "get_vo2max_trend",
+    "get_weekly_intensity_minutes", "get_weekly_steps", "get_weekly_stress", "get_weigh_ins",
+    "get_workout_by_id", "get_workouts"))
+# Writes, all training-related and reversible: (1) workout planning (training-plan skill step 7: create,
+# schedule and clean up [Coach] workouts, behind a two-step approval in the prompt); (2) feedback on a
+# recorded activity (RPE, feel, name, description). NOT allowed: delete_activity, set_activity_type /
+# event_type, HR-zone settings, weigh-ins/body composition/nutrition/gear, courses, device settings.
+GARMIN_WRITE_TOOLS = ",".join("mcp__garmin__" + t for t in (
+    "upload_workout", "schedule_workout", "delete_workout",
+    "set_perceived_effort", "set_activity_feel", "set_activity_name", "set_activity_description"))
 ALLOWED_TOOLS = os.environ.get(
     "TELEGRAM_ALLOWED_TOOLS",
     # The only Bash allowed is the fixed HR-zone script (no free shell).
     f"Read,Glob,Grep,Edit,Write,Bash(python3 scripts/hr_zones.py:*),"
-    f"{GARMIN_READ_TOOLS},{GARMIN_WORKOUT_TOOLS},mcp__oura")
+    f"{GARMIN_READ_TOOLS},{GARMIN_WRITE_TOOLS},mcp__oura")
 MAX_TURNS = os.environ.get("TELEGRAM_MAX_TURNS", "60")  # a week of workouts is ~25 tool calls
 MCP_CONFIG = os.environ.get("COACH_MCP_CONFIG", "/etc/coach/mcp.json")
 POLL_TIMEOUT = int(os.environ.get("TELEGRAM_POLL_TIMEOUT", "50"))
