@@ -46,8 +46,10 @@ Read these files **using the Read tool, not bash** (see CLAUDE.md File reading r
 4. `ATHLETE_DIR/activity-cache.csv` — classified activity history. For 8-week window, read the tail using `offset` near end-of-file with `limit: 200` — covers 100 days even at high session frequency, at much lower token cost than the full file.
 5. `ATHLETE_DIR/events-log.md` — illness, travel, disruptions, tests, milestones (last 60 days)
 
-If the cache's most recent date is older than yesterday, run the
-`activity-cache-updater` skill first, then continue.
+Before analysing, apply the **Activity cache sync rule** in `CLAUDE.md` (single
+source of truth for cache freshness): call `get_activities_by_date` from the day
+after the last cached date through today, and run the `activity-cache-updater`
+skill if anything new is returned. Do not skip this because the cache looks recent.
 
 ---
 
@@ -81,13 +83,23 @@ each week compute:
 - Total running distance (Trail running + Road running modalities)
 - Total duration (all modalities)
 - Total elevation gain
-- Longest single session (distance)
+- Longest single session (distance and duration)
 - Count of strength sessions
 - Total elevation gain (m D+)
 - Count of sessions with elevation gain ≥ 200 m (hill sessions)
 - Count of technical-terrain sessions
 - Count of night sessions (time_of_day = Night)
 - Presence of a back-to-back weekend (Sat long + Sun ≥ 10 km easy)
+- Quality sessions (count per week): do not rely on the cache `purpose` tag
+  alone — short reps (e.g. 6 × 200 m) are often tagged "Aerobic base". Also
+  count a running session as quality if its name contains a quality keyword
+  (e.g. "Nopeusperusta", "VO2max", "Kynnys", "Tempo", "Interval") or its
+  anaerobic TE is > 2.5. Do not count Wed/Fri strides or hill sprints.
+- Grey-zone sessions (only if the program states a polarization rule): count
+  running sessions that are not Interval / VO2max or Tempo / Threshold and have
+  `avg_hr` 138–148 bpm. Session avg HR is only a proxy for zone time — do not
+  use Garmin's own zone figures (see CLAUDE.md, Activity analysis rule — HR zones).
+- Calendar-month elevation total (only if the phase states a monthly D+ target)
 
 Also compute a 4-week rolling average of running distance (last 4 weeks vs.
 previous 4 weeks) to detect flat vs. progressing volume.
@@ -119,7 +131,15 @@ Parse `training-program.md` for the current phase block. From it determine:
   "Known disruption — travel" section) — these carry their own adjusted
   expectations (usually lower volume, paused hill/quality work) and should
   suppress the normal red/yellow/green thresholds for their date range
-  rather than flagging them as drift.
+  rather than flagging them as drift. Look for such windows anywhere in the
+  program file, including Current Position → Open items (e.g. a travel
+  period), not only under a "Known disruption" heading.
+- **Planned deload weeks** (e.g. "Week 4 deload, ~35 km"): score that week
+  against its own stated volume, not the block's normal range, and exclude
+  deload weeks when judging volume and long-run trends across blocks.
+- **Long-run cap by duration:** if the program states the long run as a
+  duration (e.g. "90–120 min, ≤ 2 h"), judge long-run progression by
+  duration, not distance — distance depends on terrain.
 
 If the program file lists milestones by date or by block (e.g. "LTHR field
 test scheduled May 5", "physio consult", "review checkpoint ~28.9"), note
@@ -154,6 +174,8 @@ phase sets no requirement").
 | Night sessions (only if an active race starts at night) | on pace for phase plan | ≤ 1 in last 8 weeks with race < 12 weeks | 0 in last 8 weeks with race < 8 weeks |
 | Back-to-back weekends (only if phase states this requirement) | ≥ 2 per 4-week block | 1 per 4-week block | 0 per 4-week block |
 | Quality/speed session frequency (only if phase names this as a priority, e.g. a speed-development focus) | meeting stated ×/week frequency | 50–80% of stated frequency | <50% of stated frequency |
+| Hill exposure — monthly D+ (only if phase states a monthly D+ target) | calendar month on pace for the target (pro-rate the current month) | 60–99% of pro-rated target | < 60% of target for a full month |
+| Polarization / grey zone (only if the program states a polarization rule) | ≤ 1 grey-zone session in last 4 weeks | 2–3 sessions | ≥ 4 sessions, or a cluster in consecutive weeks (defaults — the program file's own tolerance overrides) |
 | Key milestones (whatever the program file lists — race-prep or otherwise, e.g. physio consult, field test, review checkpoint) | all on schedule | 1 slipping | 2+ slipping |
 | Disruption context | no active illness, no major recent gap; any program-flagged disruption window (e.g. travel) is proceeding as expected | minor recent disruption, recovered | active illness or CLEARED < 7 days ago |
 
@@ -190,8 +212,9 @@ no reference point.)
 🟢/🟡/🔴 Volume trend:           [4-wk vs. prev 4-wk, + direction]
 🟢/🟡/🔴 Long-run progression:    [longest per week for last 6 weeks]
 🟢/🟡/🔴 Strength frequency:      [sessions/week vs. prescription]
-🟢/🟡/🔴 Hill exposure (D+):       [weekly D+ last 4 weeks vs. 1200 m target; trend]
+🟢/🟡/🔴 Hill exposure (D+):       [D+ last 4 weeks vs. the target the phase actually states (weekly or monthly); trend]
 🟢/🟡/🔴 Hill exposure (sessions): [count sessions ≥200 m gain last 4 weeks]
+🟢/🟡/🔴 Polarization:            [grey-zone sessions last 4 weeks (avg HR 138–148, proxy)]
 🟢/🟡/🔴 Night sessions:          [count last 8 weeks; race start time]
 🟢/🟡/🔴 Back-to-back weekends:   [count last 4 weeks; phase threshold]
 🟢/🟡/🔴 Key milestones:          [bullet list of named milestones with status]
