@@ -17,7 +17,9 @@ Reads ATHLETE_DIR/activity-cache.csv, ATHLETE_DIR/events-log.md and the Athlete 
 ATHLETE_DIR/athlete-profile.md (ATHLETE_DIR from scripts/resolve_athlete.py). Pure stdlib.
 
 Definitions (same as the skill):
-  * Run = Trail running + Road running. Strength = modality "Gym / strength".
+  * Run = Trail running + Road running. RunMin = running minutes; Trail = minutes of activity type
+    Trail running (the athlete picks it whenever the route leaves roads/built paths). Terrain makes
+    km a poor load measure on trails, so judge running volume by minutes (and D+) as well as km. Strength = modality "Gym / strength".
   * Hill session = elevation gain >= 200 m (any modality). Night = time_of_day Night.
   * Quality session = running session with purpose Interval / VO2max or Tempo / Threshold, or a
     quality keyword in the name (Nopeusperusta, VO2max, Kynnys, Tempo, Interval), or anaerobic TE > 2.5.
@@ -159,7 +161,7 @@ def main(argv) -> int:
     out = [f"PROGRAM HEALTH DATA {today.day}.{today.month}.{today.year} (last {n} ISO weeks, Mon-Sun; "
            f"* = week in progress, D = planned deload)",
            f"Config: long run >= {long_km:g} km; grey zone = avg HR {grey_lo:g}-{z3_max:g}; hill session >= 200 m",
-           "Week     RunKm  Hrs   D+    Long(km/min)  Str  Hill  Tech  Night  Qual  Grey  B2B  Sessions"]
+           "Week     RunKm  RunMin Trail  Hrs   D+    Long(km/min)  Str  Hill  Tech  Night  Qual  Grey  B2B  Sessions"]
     run_km = {}
     for mon in mondays:
         W = by_week.get(mon, [])
@@ -172,7 +174,8 @@ def main(argv) -> int:
         grey = sum(1 for r in run if r["purpose"] not in QUALITY_PURPOSES and grey_lo <= f(r["avg_hr"]) <= z3_max)
         star = ("*" if mon == this_mon else "") + ("D" if mon in deloads else "")
         out.append(
-            f"{f'{mon.day}.{mon.month}.{star}':<8} {km:5.1f}  {hm(sum(f(r['duration_min']) for r in W)):>5} "
+            f"{f'{mon.day}.{mon.month}.{star}':<8} {km:5.1f}  {sum(f(r['duration_min']) for r in run):5.0f}  "
+            f"{sum(f(r['duration_min']) for r in run if r['modality'] == 'Trail running'):5.0f}  {hm(sum(f(r['duration_min']) for r in W)):>5} "
             f"{sum(f(r['elevation_m']) for r in W):5.0f}  "
             + (f"{f(longest['distance_km']):4.1f}/{f(longest['duration_min']):3.0f}      " if longest else "-            ")
             + f"{sum(r['modality'] == 'Gym / strength' for r in W):3d}  "

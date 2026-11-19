@@ -79,7 +79,7 @@ does not match the program's **Current Position** section (stale update).
 Do **not** compute these by hand. Run `python3 scripts/program_health.py [weeks]` (from the workspace
 root, `python3` on Linux; default 8 ISO weeks) after the sync in Step 1. It is the single place where
 the aggregates are defined, in every environment (SSH, Cowork, Telegram), so its docstring is the
-authority for the exact definitions. Per ISO week it prints: running km, hours, D+, longest run
+authority for the exact definitions. Per ISO week it prints: running km, running minutes (RunMin), minutes of Trail running (Trail), all-modality hours, D+, longest run
 (km/min), strength sessions, hill sessions (>= 200 m), technical-terrain sessions, night sessions, quality
 sessions (purpose, name keyword or anaerobic TE > 2.5), grey-zone sessions (avg-HR proxy from `Athlete
 Config`), back-to-back weekends (Sat long run + Sun >= 10 km); plus the 4-week volume trend (average run
@@ -151,7 +151,7 @@ phase sets no requirement").
 
 | Area | 🟢 Green | 🟡 Yellow | 🔴 Red |
 |------|---------|----------|-------|
-| Volume vs. phase range | within range for 3+ of last 4 weeks | below range 2+ weeks | below range 3+ weeks OR above peak range consistently |
+| Volume vs. phase range (judge by the unit the phase states, km or hours; trail terrain makes km a poor measure, so also quote RunMin/hours and D+, and say if the verdict differs by unit) | within range for 3+ of last 4 weeks | below range 2+ weeks | below range 3+ weeks OR above peak range consistently |
 | Volume trend (4-wk vs. prev 4-wk) | +5% to +20% in a build phase; flat ±5% in maintenance/recovery/taper | +/- appropriate but inconsistent | stagnant for 8+ weeks in a build phase (not a flag in a maintenance phase) |
 | Long-run progression — **build phase** (program states a progression target) | steadily increasing, hitting phase targets | plateaued 3+ weeks | plateaued 5+ weeks OR regressed |
 | Long-run progression — **maintenance phase** (program states no progression target) | stable within the stated duration/volume range | drifting below range 2+ weeks | absent 3+ weeks running |

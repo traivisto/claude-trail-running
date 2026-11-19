@@ -17,8 +17,10 @@ scripts/resolve_athlete.py). Pure stdlib.
 
 Notes on the numbers:
   * "Run" = Trail running + Road running. km in the headline is running km; all-modality km is shown too.
-  * Average paces are total time / total distance of the sessions concerned (not a mean of paces).
-  * "Fastest" ignores running sessions shorter than 2 km.
+  * Pace is reported for Road running ONLY (total time / total distance, not a mean of paces; "Fastest"
+    ignores sessions shorter than 2 km). Trail running (activity type chosen by the athlete whenever the
+    route leaves roads/built paths) is reported as time, ascent and duration-weighted avg HR, never as pace:
+    trail paces are not comparable (terrain, wet rock).
   * Weekly rows are ISO weeks (Mon-Sun); the first/last row is marked * when the week reaches outside
     the month.
   * If the cache ends before yesterday the output says so: this script never syncs.
@@ -136,19 +138,28 @@ def summarize(rows, year: int, month: int, athlete: Path) -> str:
     if hill or tech:
         lines.append(f"Modifiers: {hill} Hill | {tech} Technical terrain")
 
+    road = [r for r in run if r["modality"] == "Road running"]
+    trail = [r for r in run if r["modality"] == "Trail running"]
     paces = []
     for label, purposes in (("Aerobic base", ("Aerobic base",)),
                             ("Long", ("Long effort", "Very long / Race sim")),
                             ("Tempo", ("Tempo / Threshold",))):
-        sel = [r for r in run if r["purpose"] in purposes and f(r["distance_km"]) > 0]
+        sel = [r for r in road if r["purpose"] in purposes and f(r["distance_km"]) > 0]
         if sel:
             paces.append(f"{label} {pace(sum(f(r['duration_min']) for r in sel), sum(f(r['distance_km']) for r in sel))}")
-    fast = [r for r in run if f(r["distance_km"]) >= 2 and f(r["pace_min_km"]) > 0]
+    fast = [r for r in road if f(r["distance_km"]) >= 2 and f(r["pace_min_km"]) > 0]
     if fast:
         fr = min(fast, key=lambda r: f(r["pace_min_km"]))
         paces.append(f"Fastest {pace(f(fr['pace_min_km']), 1)} ({dm(fr)}, {f(fr['distance_km']):.1f} km)")
     if paces:
-        lines.append("Pace (running): " + " | ".join(paces))
+        lines.append("Pace (Road running only): " + " | ".join(paces))
+    if trail:
+        t_min = sum(f(r["duration_min"]) for r in trail)
+        hr = [r for r in trail if f(r["avg_hr"]) > 0]
+        hr_txt = (f", avg HR {sum(f(r['avg_hr']) * f(r['duration_min']) for r in hr) / sum(f(r['duration_min']) for r in hr):.0f}"
+                  if hr else "")
+        lines.append(f"Trail running (time, not pace): {len(trail)} sessions, {hm(t_min)}, "
+                     f"{sum(f(r['elevation_m']) for r in trail):.0f} m ascent{hr_txt}")
 
     te_a = sum(f(r["aerobic_te"]) for r in R) / len(R)
     te_n = sum(f(r["anaerobic_te"]) for r in R) / len(R)

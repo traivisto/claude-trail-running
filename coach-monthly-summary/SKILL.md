@@ -50,7 +50,7 @@ the single place where the aggregates are defined, in every environment (SSH, Co
 docstring is the authority for the exact definitions. For each month it prints:
 - **Volume:** sessions, running km (Trail + Road), all-modality km, hours, elevation, breakdown by modality
 - **Purpose mix:** sessions and km per purpose tag; **Modifiers:** Hill and Technical terrain counts
-- **Pace (running only):** aerobic base, long, tempo averages (total time / total distance) and fastest session (>= 2 km)
+- **Pace (Road running only):** aerobic base, long, tempo averages (total time / total distance) and fastest session (>= 2 km). **Trail running** (activity type the athlete picks whenever the route leaves roads/built paths) is never given as pace - trail paces are not comparable (terrain, wet rock) - but as sessions, time, ascent and avg HR; time at a HR zone is the proper trail measure (see Notes)
 - **Longest session** (name, distance, duration, elevation, purpose, date)
 - **Intensity:** average aerobic / anaerobic TE and training-effect label counts
 - **Subjective effort:** mean RPE, feel distribution, easy-day sessions with RPE >= 8
@@ -164,7 +164,7 @@ yourself.
 1. Run the script as in Step 2. If its last line says the cache is stale, keep that caveat; do not call
    Garmin just for a summary.
 2. Write the reply in the athlete's language, in this order and only with numbers the script printed:
-   running km, sessions and hours (add elevation) · longest session · purpose mix · aerobic/long pace ·
+   running km, sessions and hours (add elevation) · longest session · purpose mix · road aerobic/long pace and trail time + avg HR ·
    weekly running km as a short series · RPE/feel if present · one or two observations. The first line
    says if the month is still in progress.
 3. Explain dips and spikes with the **Events log** lines first (illness, travel, tests); never guess a
@@ -177,6 +177,7 @@ yourself.
 
 - **No API calls**: This skill reads entirely from the local CSV cache (`scripts/monthly_summary.py` does the reading and computing in every environment). If the cache
   needs updating, delegate to the activity-cache-updater skill.
+- **Pace vs trail:** never compare or average trail paces, and never mix trail and road in one pace figure. For trail say time (and avg HR, ascent); time-in-zone per trail run is not in the cache yet (it needs per-second HR via `scripts/hr_zones.py` on one activity).
 - **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.75 → 6:45/km).
 - **Zero handling**: Omit any category with zero entries rather than showing "0".
 - **Rounding**: Keep distances to 1 decimal, durations to whole minutes, elevation to whole meters.
