@@ -51,9 +51,16 @@ GARMIN_READ_TOOLS = ",".join("mcp__garmin__" + t for t in (
     "get_activities_by_date", "get_activity", "get_activity_splits", "get_sleep_summary",
     "get_training_readiness", "get_morning_training_readiness", "get_training_status",
     "get_hrv_data", "get_body_battery", "get_rhr_day", "get_stats", "get_stress_summary",
-    "get_scheduled_workouts", "get_race_predictions", "get_vo2max_trend"))
+    "get_scheduled_workouts", "get_workouts", "get_race_predictions", "get_vo2max_trend"))
+# Workout planning (training-plan skill step 7): create, schedule and clean up [Coach] workouts.
+# No delete_activity, no body-composition/weight/nutrition/gear/profile writes. The prompt additionally
+# requires an explicit athlete approval of a saved draft before any of these is called.
+GARMIN_WORKOUT_TOOLS = ",".join("mcp__garmin__" + t for t in (
+    "upload_workout", "schedule_workout", "delete_workout"))
 ALLOWED_TOOLS = os.environ.get(
-    "TELEGRAM_ALLOWED_TOOLS", f"Read,Glob,Grep,Edit,Write,{GARMIN_READ_TOOLS},mcp__oura")
+    "TELEGRAM_ALLOWED_TOOLS",
+    f"Read,Glob,Grep,Edit,Write,{GARMIN_READ_TOOLS},{GARMIN_WORKOUT_TOOLS},mcp__oura")
+MAX_TURNS = os.environ.get("TELEGRAM_MAX_TURNS", "60")  # a week of workouts is ~25 tool calls
 MCP_CONFIG = os.environ.get("COACH_MCP_CONFIG", "/etc/coach/mcp.json")
 MAX_FAILURES = 3
 ERROR_TEXT = os.environ.get(
@@ -124,7 +131,7 @@ def build_prompt(athlete: Path, convlog: Path, msgs: list) -> str:
 
 def run_claude(prompt: str) -> str:
     cmd = [os.environ.get("CLAUDE_BIN", "claude"), "-p", prompt,
-           "--allowedTools", ALLOWED_TOOLS, "--max-turns", "30"]
+           "--allowedTools", ALLOWED_TOOLS, "--max-turns", MAX_TURNS]
     if Path(MCP_CONFIG).exists():
         cmd += ["--mcp-config", MCP_CONFIG]
     # stdin=DEVNULL: otherwise `claude -p` waits ~3 s for piped input before proceeding

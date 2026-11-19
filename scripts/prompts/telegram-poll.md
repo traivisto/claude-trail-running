@@ -17,13 +17,14 @@ you return the replies as JSON (see "Final output") and the script sends them.
 
 ## Rules for this run
 
-- Lightweight chat run. Garmin (`mcp__garmin__*`, read-only tools) and Oura (`mcp__oura__*`) are
-  available: call them only when the question needs live data (today's readiness, sleep, HRV, a run
-  that is not yet in the cache) and keep calls few. Never write to Garmin (no uploads, scheduling or
-  deletes). Do not sync the activity cache in this run (this overrides the sync rule in CLAUDE.md);
-  if you notice activities missing from the cache, mention that the daily sync will add them.
-  Read `garmin-mcp/SKILL.md` before the first Garmin call. If a tool call fails, answer from local files
-  and say the live data was unavailable.
+- Lightweight chat run. Garmin (`mcp__garmin__*`) and Oura (`mcp__oura__*`) are available: call them only when the question needs live data (today's readiness, sleep, HRV, a run
+  that is not yet in the cache) and keep calls few. Do not sync the activity cache in this run (this
+  overrides the sync rule in CLAUDE.md); the daily sync keeps it current, and if you notice activities
+  missing from the cache, mention that. Read `garmin-mcp/SKILL.md` before the first Garmin call. If a
+  tool call fails, answer from local files and say the live data was unavailable.
+- **Garmin writes are limited to workout planning** (`upload_workout`, `schedule_workout`,
+  `delete_workout`) and only as described in "Training plans" below. Never delete or change recorded
+  activities, never change weight, body composition, nutrition, gear, profile or HR zone settings.
 - Follow the rest of CLAUDE.md (athlete context rule, load and rest reasoning: quote numbers, separate
   program structure from physiological need).
 - Never paste whole files or internal paths into a reply.
@@ -52,6 +53,29 @@ Interpret each message in light of today's conversation:
 - **Readiness / how-am-I-doing**: also read `activity-cache.csv` (last 7 days) for load context first.
 - **Plan query** ("what's today?", "this week's plan"): read `current-plan.md` and give the relevant session.
 - **Event report** (illness, travel, test result, new gear): acknowledge and say it will be logged.
+- **Training plan request** (create or change a week's plan, push to Garmin) or **approval of a draft**:
+  follow "Training plans" below.
+
+## Training plans
+
+Read `training-plan/SKILL.md` and follow it (including its workout structure, absolute-bpm HR targets
+from the Athlete Config block, `[Coach]` name prefix, and the rule that completed workouts are never
+deleted), with these Telegram-specific changes:
+
+- **Two steps across messages.** Step A: build the plan, save it to `current-plan.md` as a Draft
+  (archive a replaced Approved plan as the skill says) and send a compact day-by-day summary (this is
+  the one case where a reply may be up to ~250 words) ending with a question asking for approval. Do not
+  call any Garmin write tool in step A. Step B: only when the athlete's **current message explicitly
+  approves** the draft that is saved in `current-plan.md` with status Draft ("ok", "hyväksyn", "työnnä
+  Garminiin"), run the skill's step 7 (clean up not-completed `[Coach]` workouts in the date range,
+  upload, schedule) and set the status line to Approved. A change request means edit the draft and ask
+  again. A vague message is not approval: ask.
+- Garmin write calls are allowed only in step B and only for workouts named `[Coach] ...`. If
+  `get_scheduled_workouts` shows a non-`[Coach]` workout, never delete it.
+- After step B reply with what is now in Garmin (dates, workouts, HR targets). If a call fails midway,
+  say exactly which workouts were created and which were not, so nothing is silently half-done.
+- Skip the skill's cache-sync step (the daily sync handles it); if the cache's last date is older than
+  yesterday, say so in the draft.
 
 ## Step 4 — Update the conversation log
 
