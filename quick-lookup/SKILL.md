@@ -75,9 +75,9 @@ For some questions, one file is enough. For others (e.g. "when does the taper st
 
 For any aggregation over the cache, use a short Python script rather than trying to compute in your head. This avoids errors on multi-week or multi-month sums.
 
-**Important — file access pattern:** Bash sees a stale Cowork mount (see CLAUDE.md File reading rule). Do **not** read `activity-cache.csv` directly from bash. Instead:
+**Important — file access pattern:** In Cowork's sandbox bash sees a stale mount (legacy, see CLAUDE.md File reading rule; on the NAS bash and Read see the same files, but keep this pattern). Do **not** read `activity-cache.csv` directly from bash. Instead:
 
-1. **Read the cache via the Read tool** (Windows-direct, always fresh). For recent-window questions read only the tail using `offset` near end-of-file with `limit: 100`; for arbitrary historical questions read the full file.
+1. **Read the cache via the Read tool** (always fresh). For recent-window questions read only the tail using `offset` near end-of-file with `limit: 100`; for arbitrary historical questions read the full file.
 2. **Pipe the content into Python via stdin** for aggregation:
 
 ```bash

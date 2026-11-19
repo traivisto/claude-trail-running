@@ -56,15 +56,24 @@ Full steps in `deploy/nas/README.md`. In short:
 ## Garmin MCP — setup
 
 - Connector: Taxuspt/garmin_mcp via `uvx`. On the NAS it is started per run from `deploy/nas/mcp.json`
-  (pinned commit). On a PC (Cowork) it is started manually in a terminal before a session:
-  `uvx --python 3.12 --from git+https://github.com/Taxuspt/garmin_mcp garmin-mcp`
-  (on Windows prefix with `cmd /c`).
+  (pinned commit). Interactive NAS sessions get it through Claude Code's MCP configuration; if it drops
+  mid-session, reconnect with `/mcp`. For debugging it can be started by hand:
+  `uvx --python 3.12 --from git+https://github.com/Taxuspt/garmin_mcp garmin-mcp`.
 - Auth tokens: `~/.garminconnect`, managed by the `garth` library. Renew with
   `uvx --python 3.12 --from git+https://github.com/Taxuspt/garmin_mcp garmin-mcp-auth`.
 - Parameter types: `activity_id` must be a **number**, not a string, otherwise a 422 error.
 - Key tools: `get_activities_by_date`, `get_activity`, `get_body_battery`, `get_hrv_data`,
   `get_sleep_summary` (light, ~350 B — use this, NOT `get_sleep_data` which returns ~200 KB),
   `get_rhr_day`, `get_training_readiness`, `get_training_status`.
+
+### Quirk — `get_activity_fit_data(include_records=true)` on very long activities (2026-11-20)
+For a 56 min run the result is ~1 MB of JSON (~300 B per 1 s record, saved to a file). For a ~18 h race
+(NUTS Ylläs Pallas 100 km) it would be ~20 MB; the call failed three times with "Connection closed" and
+the first failure took the Garmin MCP server down until `/mcp` reconnected it. Use
+`download_activity_file(activity_id, format="fit", output_dir=<own empty dir>)` instead (4.9 MB for the
+race, written to disk, no large response) and `python3 scripts/hr_histogram.py add-fit <file> <id>`
+(stdlib FIT decoder; validated against the race: avg HR 129.4 vs 129, max 150 vs 150, duration −0.6 %).
+Short activities keep using `get_activity_fit_data` + `hr_histogram.py add`.
 
 ### Quirk — `recovery_time_hours` after ultra distances
 After a 100 km / 18 h effort `get_morning_training_readiness` returned `recovery_time_hours: 1976`
@@ -144,7 +153,7 @@ editing `SKILL.md` directly; no packaging or global installation. **Note:** `lis
 `mcp__skills__list_skills` shows only globally installed skills and does not see workspace-local ones.
 To check which skills exist, use `Glob` for `**/SKILL.md`. Never state that a skill is missing before checking.
 
-## Cowork mount staleness (important, Cowork only)
+## Cowork mount staleness (legacy: Cowork only, does not apply on the NAS)
 In Cowork, the Linux sandbox sees workspace files through a mount that is effectively a snapshot taken at
 session start plus an overlay for in-session Edit changes. External changes (OneDrive sync, a cache
 updated by the Garmin sync, a dashboard regenerated from the command line) **do not propagate to the bash

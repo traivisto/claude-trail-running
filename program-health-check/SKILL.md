@@ -38,7 +38,7 @@ Resolve **ATHLETE_DIR** as defined in `CLAUDE.md` → "Athlete directory": `$COA
 
 ## Step 1: Load all context (in parallel where possible)
 
-Read these files **using the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale Cowork mount):
+Read these files **using the Read tool, not bash** (see CLAUDE.md File reading rule):
 
 1. `ATHLETE_DIR/training-program.md` — phase map, volume ranges, session priorities per phase, current position, explicit race-specific milestones
 2. `ATHLETE_DIR/race-card.md` — race date, start time, distance, elevation, terrain notes
@@ -78,7 +78,7 @@ does not match the program's **Current Position** section (stale update).
 
 Do **not** compute these by hand. Run `python3 scripts/program_health.py [weeks]` (from the workspace
 root, `python3` on Linux; default 8 ISO weeks) after the sync in Step 1. It is the single place where
-the aggregates are defined, in every environment (SSH, Cowork, Telegram), so its docstring is the
+the aggregates are defined, in every environment (interactive session, Telegram), so its docstring is the
 authority for the exact definitions. Per ISO week it prints: running km, running minutes (RunMin), minutes of Trail running (Trail), all-modality hours, D+, longest run
 (km/min), strength sessions, hill sessions (>= 200 m), technical-terrain sessions, night sessions, quality
 sessions (purpose, name keyword or anaerobic TE > 2.5), grey-zone sessions (avg-HR proxy from `Athlete

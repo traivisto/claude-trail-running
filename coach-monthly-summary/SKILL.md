@@ -46,7 +46,7 @@ All file references below are relative to **ATHLETE_DIR**.
 
 Do **not** compute aggregates by hand. Run `python3 scripts/monthly_summary.py [YYYY-MM ...]` (from the
 workspace root, `python3` on Linux; no argument = current month, several months = oldest first). It is
-the single place where the aggregates are defined, in every environment (SSH, Cowork, Telegram), so its
+the single place where the aggregates are defined, in every environment (interactive session, Telegram), so its
 docstring is the authority for the exact definitions. For each month it prints:
 - **Volume:** sessions, running km (Trail + Road), all-modality km, hours, elevation, breakdown by modality
 - **Purpose mix:** sessions and km per purpose tag; **Modifiers:** Hill and Technical terrain counts

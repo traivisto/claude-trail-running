@@ -67,7 +67,7 @@ Follow the **Activity cache sync rule in CLAUDE.md** (the single source of truth
 > - **Oura**: no data for today — ring not synced
 > - **Garmin**: not synced
 >
-> Do you want to sync first (close Cowork, sync, come back) or continue now with available data?
+> Do you want to sync the ring/watch first and ask again, or continue now with the available data?
 
 Wait for the user's response before continuing.
 - "Sync first" → wait, user returns and restarts

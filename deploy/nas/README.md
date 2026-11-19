@@ -37,7 +37,7 @@ shared folder `docker`.
 
 - Copy the files of `deploy/nas/` (Dockerfile, compose.yaml, mcp.json, the `.sh` scripts) into
   `/volume1/docker/coach/`.
-- Copy the **code repo** into `app/`, **including `.git/`** (clone it on a PC first; `update-coach.sh`
+- Copy the **code repo** into `app/`, **including `.git/`** (clone it with any git client; `update-coach.sh`
   needs the checkout), but not `docs/archive/` or the contents of `athletes/`. Keep an empty
   `app/athletes/` folder (the mount point for the data volume).
 - Copy `athletes/<id>/` into `/volume1/docker/coach/athletes/<id>/`. Athlete folders are git-ignored; they
@@ -188,9 +188,13 @@ edits and push, or discard them, before the next `update-coach.sh`.
 
 ## Notes
 
-- Athlete data on the NAS is a **copy** of the PC's: athlete folders are git-ignored and there is no
-  automatic data sync. Let only one machine write to an athlete's data (PC/Cowork or NAS), otherwise the
-  copies diverge.
+- The NAS is the only place where athlete data is written and where the code is developed (interactive
+  sessions via `coach-chat.sh` / `coach-edit`; commit and push from there). Athlete folders are git-ignored,
+  so they are backed up with the NAS, not through git. Development happens in the same checkout that
+  `update-coach.sh` pulls into, so git is usually already up to date when it runs; the script still syncs
+  the deploy files and recreates `coach-telegram` when code it uses changed since its last (re)creation
+  (`coach-telegram.rev`). If a second machine is ever used, let only one machine write to an athlete's data,
+  otherwise the copies diverge.
 - Claude Code, the uv tag, the garmin_mcp commit and the oura-mcp version are pinned (below).
 
 ## Upgrading pinned versions

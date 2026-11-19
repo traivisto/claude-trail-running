@@ -8,6 +8,8 @@ An AI coaching system for trail and ultra runners. Connects your Garmin and Oura
 
 Follow these steps once before using any coaching features.
 
+> **This installation runs on a NAS** (see `deploy/nas/README.md` and `CLAUDE.md` → "Where this runs"): sessions, development and athlete data are there. The steps below describe the original single-PC setup (Windows + Claude Desktop/Cowork), kept for reference and for anyone setting the system up from scratch on a PC.
+
 **Step 1 — Connect your data sources**
 
 Copy `claude_desktop_config.example.json` to `%APPDATA%\Claude\claude_desktop_config.json`, fill in your API tokens, and restart Claude Desktop from the system tray. See the [MCP servers](#mcp-servers-data-sources) section below for token setup instructions.

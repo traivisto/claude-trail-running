@@ -2,6 +2,9 @@
 
 This folder contains a trail running coaching system. The code (skills, scripts, templates, this file) is shared and contains no personal data. Each athlete's personal data (profile, race goals, caches, plans, history) lives in its own directory under `athletes/<id>/`, which is git-ignored. Skills handle the coaching logic.
 
+## Where this runs
+Everything runs on the **NAS** (Synology, Docker). Interactive Claude Code sessions (SSH, `coach-chat.sh`) run in the `coach-edit` container, where the code is writable: **development, commits and pushes happen there** (the PC is no longer a development machine). Headless runs (daily sync, the Telegram chat bot) run in their own containers with read-only code. Athlete data lives in `athletes/<id>/` on the NAS volume and is never copied anywhere by hand. Host-side commands (`sudo ./update-coach.sh`, `docker compose ...` in `/volume1/docker/coach`) are not visible from inside the container; the user runs them on the NAS host. Details: `deploy/nas/README.md`.
+
 ## Athlete directory (ATHLETE_DIR)
 
 All personal files are read from and written to **`ATHLETE_DIR`** = `athletes/<id>/` (relative to this workspace root). Every bare filename in this file and in the skills (`athlete-profile.md`, `race-card.md`, `activity-cache.csv`, `events-log.md`, `memory.md`, `current-plan.md`, `training-program.md`, `race-day-guide.md`, `training-dashboard.html`, `aerobic-efficiency-splits.csv`, `hr-histograms.csv`, `telegram-last-update.txt`, `arkisto/`) means `ATHLETE_DIR/<that file>`.
@@ -55,7 +58,7 @@ Two files, by scope:
 `events-log.md` is the canonical store for any **date-bound event tied to this athlete** that isn't a training session — sickness, travel, alcohol, stress, lab/field tests, milestones, gear changes. When a relevant event surfaces in conversation (e.g. "tein LTHR-testin tänään", "lensin Berliiniin", "uudet kengät"), append it to events-log.md proactively, in the documented format. Permanent technical knowledge (API quirks, connector setup) stays in `docs/technical-notes.md`, athlete-specific lasting observations in `ATHLETE_DIR/memory.md`; one-off events go to `events-log.md`.
 
 ## File reading rule — Cowork mount staleness
-**Applies only when running in Cowork's Linux sandbox** (not in headless runs on a normal filesystem, e.g. NAS, nor in Claude Code on the host OS). Details in `docs/technical-notes.md`.
+**Legacy — does not apply on the NAS** (see "Where this runs"): all sessions there use a normal filesystem, where bash (`cat`, `grep`) and the Read tool see the same, fresh files. The rule below applies only if the workspace is ever opened in Cowork's Linux sandbox. Details in `docs/technical-notes.md`.
 
 Cowork's Linux sandbox sees workspace files through a mount that is essentially a session-start snapshot with an overlay for in-session edits. **External changes that happen during a session do not propagate to the bash view.** This affects `activity-cache.csv` whenever it has been updated by Garmin sync or `update-dashboard.py` outside Cowork, and any other file written by something other than Claude's Edit/Write tools.
 
