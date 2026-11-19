@@ -25,6 +25,8 @@ ENV TZ=Europe/Helsinki \
 # The container runs as an unprivileged uid:gid chosen in compose.yaml (the NAS "coach" user).
 # HOME is a mounted volume, so tokens and Claude settings persist across runs.
 RUN mkdir -p /home/coach /workspace && chmod 777 /home/coach
+# OpenSSH refuses to run for a uid without a passwd entry; give the NAS "coach" uid/gid (1031:100) a name.
+RUN useradd -u 1031 -g 100 -d /home/coach -M -s /bin/bash coach
 WORKDIR /workspace
 
 CMD ["bash"]
