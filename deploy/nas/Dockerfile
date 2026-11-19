@@ -8,7 +8,7 @@ FROM node:22-bookworm-slim
 ARG CLAUDE_CODE_VERSION=latest
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 git curl ca-certificates tzdata procps jq \
+ && apt-get install -y --no-install-recommends python3 git openssh-client curl ca-certificates tzdata procps jq \
  && rm -rf /var/lib/apt/lists/*
 
 # uv / uvx (Python tool runner used by the Garmin MCP server). Pin the tag after the first build.
