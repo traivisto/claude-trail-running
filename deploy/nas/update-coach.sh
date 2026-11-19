@@ -38,6 +38,13 @@ fi
 
 rebuild=0
 restart=0
+# The compose file needs COACH_ATHLETE_ID from ./.env (see dotenv.example); stop before copying it if that
+# is missing, otherwise every docker compose command (and the smoke test below) would fail.
+if grep -q 'COACH_ATHLETE_ID' app/deploy/nas/compose.yaml && ! grep -q '^COACH_ATHLETE_ID=.' .env 2>/dev/null; then
+  say "ERROR: create /volume1/docker/coach/.env containing  COACH_ATHLETE_ID=<athlete folder name>  (see app/deploy/nas/dotenv.example), then run this script again"
+  exit 1
+fi
+
 for f in compose.yaml mcp.json Dockerfile run-daily-sync.sh coach-chat.sh update-coach.sh; do
   if ! cmp -s "app/deploy/nas/$f" "$f"; then
     cp "app/deploy/nas/$f" "$f.new" && chmod +x "$f.new" && mv "$f.new" "$f"  # mv: safe for a running script
@@ -47,7 +54,7 @@ for f in compose.yaml mcp.json Dockerfile run-daily-sync.sh coach-chat.sh update
 done
 chmod +x run-daily-sync.sh coach-chat.sh update-coach.sh 2>/dev/null
 
-echo "$changed" | grep -Eq '^(scripts/(telegram_poll|resolve_athlete)\.py)$' && restart=1
+echo "$changed" | grep -Eq '^(scripts/(telegram_poll|resolve_athlete|hr_zones|monthly_summary)\.py)$' && restart=1
 
 if [ "$rebuild" = 1 ]; then
   say "  rebuilding image"

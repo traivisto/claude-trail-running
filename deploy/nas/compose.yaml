@@ -16,8 +16,10 @@ x-coach-common: &coach-common
   environment:
     TZ: Europe/Helsinki
     HOME: /home/coach
-    # Which athlete this runtime serves. With several athletes, run one container/job per athlete.
-    COACH_ATHLETE_DIR: /workspace/athletes/tommi
+    # Which athlete this runtime serves: the folder name under athletes/. Set COACH_ATHLETE_ID in the
+    # .env file next to this compose file (see dotenv.example). With several athletes, run one
+    # container/job per athlete (see "Several athletes" in README.md).
+    COACH_ATHLETE_DIR: /workspace/athletes/${COACH_ATHLETE_ID:?set COACH_ATHLETE_ID in ./.env (see dotenv.example)}
   env_file:
     - ./secrets/claude.env
     - ./secrets/oura.env        # OURA_TOKEN=... (create in phase B)

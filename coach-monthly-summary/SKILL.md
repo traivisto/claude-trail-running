@@ -192,9 +192,28 @@ When the user requests multiple months (e.g., "last 3 months", "Q1 summary",
 
 ---
 
+## Chat mode (Telegram, headless runs)
+
+Used when the telegram-poll prompt sends you here. A chat reply is plain text, max ~150 words, and the
+chat run has no free shell, so do **not** follow Steps 1–5 by hand. Instead:
+
+1. Run `python3 scripts/monthly_summary.py [YYYY-MM ...]` (the only shell command available; no argument =
+   current month, several months = oldest first). It computes every aggregate of Step 3 from the cache and
+   prints the events-log entries of the month. It does not sync: if its last line says the cache is stale,
+   keep that caveat in the reply; do not call Garmin just for a summary.
+2. Write the reply from the script output, in the athlete's language, in this order and only with numbers
+   the script printed: running km, sessions and hours (add elevation) · longest session · purpose mix ·
+   aerobic/long pace · weekly running km as a short series · RPE/feel if present · one or two observations.
+   The first line says if the month is still in progress.
+3. Explain dips and spikes with the **Events log** lines first (illness, travel, tests), as in the
+   Notes below; never guess a cause the log does not support. Apply the load and rest reasoning rule of
+   CLAUDE.md: quote the numbers, and say whether a reason is program structure or physiology.
+4. Several months: one line per month (run km, hours, elevation, longest) and then one or two sentences
+   of trend. Skip categories with zero entries.
+
 ## Notes
 
-- **No API calls**: This skill reads entirely from the local CSV cache. If the cache
+- **No API calls**: This skill reads entirely from the local CSV cache (in chat mode `scripts/monthly_summary.py` does the reading and computing). If the cache
   needs updating, delegate to the activity-cache-updater skill.
 - **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.75 → 6:45/km).
 - **Zero handling**: Omit any category with zero entries rather than showing "0".

@@ -104,7 +104,17 @@ Use the `training-plan` skill for all training plan creation. The skill handles 
 Oura data is fetched live via the `mcp__oura__` MCP tools (daveremy/oura-mcp, token stored in the MCP config). Skills call `mcp__oura__oura_daily_summary` directly — no local file or script needed (the legacy `oura-fetch.py` was retired). If the MCP tools are unavailable, all skills continue with Garmin data only.
 
 ## Optional: Telegram remote interface
-A Telegram bot can be used as a remote interface — send coaching questions and log status updates from your phone without opening Cowork. Requires the `telegram-nemo` Cowork plugin to be installed and configured with a bot token. If the plugin is not installed or the `mcp__telegram-nemo__` tools are unavailable, skip all Telegram steps silently — no error, no prompt to the user. State is tracked in `ATHLETE_DIR/telegram-last-update.txt`. A scheduled task polls for new messages hourly. See `ATHLETE_DIR/memory.md` for bot setup details specific to this athlete's installation and `docs/technical-notes.md` for the design.
+A Telegram bot is the remote interface: the athlete sends coaching questions and status updates from the
+phone and gets short replies. It runs on the NAS as the always-on `coach-telegram` container
+(`scripts/telegram_poll.py --loop`, prompt `scripts/prompts/telegram-poll.md`), configured in
+`deploy/nas/` (bot token and chat id in `secrets/telegram.env` there, never in the repo). The old Cowork
+plugin / hourly scheduled task is retired. If no bot is configured, skip all Telegram steps silently. State
+is in `ATHLETE_DIR/telegram-last-update.txt` (offset) and `ATHLETE_DIR/telegram-conversation-log.md`
+(same-day memory); a test bot uses `telegram-test-*` files. The chat run has no free shell, only the fixed
+scripts `scripts/hr_zones.py` and `scripts/monthly_summary.py`, and cannot edit code; improvement ideas
+go to the development backlog (below). Design and
+operations: `docs/technical-notes.md` (Telegram, NAS runtime) and `deploy/nas/README.md`; athlete-specific
+setup in `ATHLETE_DIR/memory.md`.
 
 ## Load and rest reasoning rule
 Rest and load recommendations must be grounded in measured data and must not present program structure as a physiological need.

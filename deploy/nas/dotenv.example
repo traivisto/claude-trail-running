@@ -1,0 +1,3 @@
+# Copy to /volume1/docker/coach/.env (the file name must be exactly ".env"; Docker Compose reads it
+# automatically). It holds no secrets: only which athlete folder under athletes/ this runtime serves.
+COACH_ATHLETE_ID=<id>

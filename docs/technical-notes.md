@@ -12,15 +12,50 @@ trigger phrases so skills fire in either language.
 
 ## Telegram remote interface — design
 
-- MCP: `telegram-nemo` Cowork plugin (one or more bots; the coaching bot is configured per athlete).
-- A scheduled task polls hourly (e.g. `2 8-22 * * *`); the last handled `update_id` is stored as a plain
-  integer in `<athlete>/telegram-last-update.txt`.
-- An empty poll costs ~200–400 tokens and must not read the athlete profile when there are no messages.
-- Old approach (direct HTTP calls with a token file) is retired.
+- Runs on the NAS as the always-on `coach-telegram` container: `scripts/telegram_poll.py --loop` long-polls
+  the Telegram Bot API (no Cowork plugin, no hourly scheduled task; those are retired). One bot and one
+  allowed chat id per athlete (`secrets/telegram.env`); only one poller may use a bot token.
+- One cycle: read new messages of the allowed chat → if there are none, do nothing (Claude is not called,
+  nothing is written) → otherwise one `claude -p` run with `scripts/prompts/telegram-poll.md` → send the
+  replies → only then advance the offset. A failed run is retried; after 3 failures the athlete gets a
+  fixed error text and the messages are dropped.
+- State (default, per athlete): offset in `<athlete>/telegram-last-update.txt` (plain integer), same-day
+  conversation memory in `<athlete>/telegram-conversation-log.md` (reset daily). In the **test phase** the
+  env file points both to `telegram-test-offset.txt` / `telegram-test-conversation-log.md` and uses a
+  separate test bot, so the production offset and log stay untouched until cutover
+  (`deploy/nas/README.md`, "Phase C").
+- The chat run is deliberately limited (`ALLOWED_TOOLS` in the script): read-only Garmin tools, a few
+  reversible Garmin writes (`[Coach]` workouts behind a two-step approval; RPE/feel/name/description of an
+  activity), Oura, file tools, and **no free shell** — only the fixed scripts `scripts/hr_zones.py` (HR
+  zones of one run) and `scripts/monthly_summary.py` (monthly summary from the cache). The code is
+  read-only for chat runs, so improvement ideas go to `<athlete>/coach-backlog.md` (after the athlete
+  agrees) and are worked on in SSH sessions.
+- No health monitoring by design: Docker restarts a crash, a hang is noticed by hand (SSH; see
+  `deploy/nas/README.md`).
+
+## NAS runtime — operations
+
+Full steps in `deploy/nas/README.md`. In short:
+
+- **Three compose services** share one image: `coach` (headless one-off jobs, code read-only),
+  `coach-edit` (SSH sessions, code writable), `coach-telegram` (always-on bot). Which athlete they serve is
+  `COACH_ATHLETE_ID` in `.env` next to compose.yaml; nothing in the code names an athlete.
+- **Scheduling** is DSM Task Scheduler, not cron in the container: `run-daily-sync.sh [athlete-id]` (cache
+  sync, aerobic-efficiency splits, dashboard).
+- **Updating**: `update-coach.sh` does a fast-forward `git pull` of `app/` from GitHub inside `coach-edit`,
+  copies changed deploy files to the NAS folder, rebuilds/recreates what changed and smoke-tests. Git
+  authenticates with an SSH **deploy key** in the container home (`~/.ssh/deploy_key`, selected by
+  `core.sshCommand` in the repo's git config); the public key is registered as a repository deploy key on
+  GitHub. It refuses to run over uncommitted changes in `app/`.
+- **Pinned versions**: Claude Code and uv in the Dockerfile, garmin_mcp commit and oura-mcp in `mcp.json`.
+  Upgrade procedure in the README.
+- **Data**: athlete folders are git-ignored, so athlete data never moves through git. Let one machine write
+  per athlete.
 
 ## Garmin MCP — setup
 
-- Connector: Taxuspt/garmin_mcp via `uvx`, started manually in a terminal before a session:
+- Connector: Taxuspt/garmin_mcp via `uvx`. On the NAS it is started per run from `deploy/nas/mcp.json`
+  (pinned commit). On a PC (Cowork) it is started manually in a terminal before a session:
   `uvx --python 3.12 --from git+https://github.com/Taxuspt/garmin_mcp garmin-mcp`
   (on Windows prefix with `cmd /c`).
 - Auth tokens: `~/.garminconnect`, managed by the `garth` library. Renew with
@@ -47,7 +82,7 @@ Corrected in `garmin-mcp/SKILL.md`; summary:
 - `get_activity`: RPE/feel fields are `workout_rpe`/`workout_feel`. `workout_feel` uses 0/25/50/75/100
   (very_weak/weak/normal/strong/very_strong). The RPE ×10 quirk still holds (divide by 10).
 - This may be a wrapper version bump rather than isolated drift: re-check other documented field names
-  when something behaves unexpectedly. Consider pinning the `garmin_mcp` version.
+  when something behaves unexpectedly. On the NAS the `garmin_mcp` commit is pinned in `deploy/nas/mcp.json`.
 
 ### Quirk — `get_activity_weather` units
 `temperature_celsius` / `apparent_temperature_celsius` can be degrees **Fahrenheit** mislabeled as Celsius

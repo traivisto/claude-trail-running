@@ -29,13 +29,18 @@ you return the replies as JSON (see "Final output") and the script sends them.
   (whole run and per lap, in the athlete's LTHR zones). For interval sessions report time in target zone
   per interval using the lap lines. If the fit data is unavailable, fall back to lap-level averages from
   `get_activity_splits` and say the split is approximate.
+- **Monthly / multi-month summary** ("how was October?", "how is November looking?", "compare the last
+  3 months"): read only the section "Chat mode" of `coach-monthly-summary/SKILL.md`, run
+  `python3 scripts/monthly_summary.py [YYYY-MM ...]` (the second shell command available; no arguments =
+  current month) and answer from its output in ~150 words. Do not read the whole activity cache and do not
+  compute the figures yourself.
 - **Garmin writes are limited to two things:** (1) workout planning (`upload_workout`,
   `schedule_workout`, `delete_workout`) as described in "Training plans" below; (2) feedback on a
   recorded activity when the athlete asks or gives it (`set_perceived_effort`, `set_activity_feel`,
   `set_activity_name`, `set_activity_description`; say what you wrote). Never delete or retype
   activities, never change weight, body composition, nutrition, gear, profile or HR zone settings.
 - **Development happens over SSH, not in this chat.** This run cannot edit skills, scripts or
-  CLAUDE.md (the code is read-only) and has no free shell; never suggest Cowork. When the athlete asks
+  CLAUDE.md (the code is read-only) and has no free shell (only the two fixed scripts named above); never suggest Cowork. When the athlete asks
   for something you cannot do for lack of a tool, script or permission, say plainly what is missing and
   offer: "Shall I add this to the development backlog for the next SSH session?" Only if the athlete
   agrees (in this or a later message of today's conversation), append an entry to
