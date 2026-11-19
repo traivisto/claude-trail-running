@@ -15,11 +15,11 @@ case "$ID" in
 esac
 
 # ATHLETE_DIR is resolved inside the container from $COACH_ATHLETE_DIR (set by compose or by -e above).
-PROMPT='Run the activity-cache-updater skill (read /workspace/activity-cache-updater/SKILL.md). Resolve ATHLETE_DIR as CLAUDE.md describes (the COACH_ATHLETE_DIR environment variable is set). Sync new Garmin activities into the cache; if any were added, also run the aerobic-efficiency-updater skill and scripts/update-dashboard.py as CLAUDE.md describes. If nothing is new, say so and change nothing. Report briefly what you did.'
+PROMPT='Run the activity-cache-updater skill (read /workspace/activity-cache-updater/SKILL.md). Resolve ATHLETE_DIR as CLAUDE.md describes (the COACH_ATHLETE_DIR environment variable is set). Sync new Garmin activities into the cache; if any were added, also do the HR histogram step of that skill (scripts/hr_histogram.py), run the aerobic-efficiency-updater skill and scripts/update-dashboard.py as CLAUDE.md describes. If nothing is new, say so and change nothing. Report briefly what you did.'
 
 OUT=$(/usr/local/bin/docker compose run --rm -T $ID_ARGS coach claude -p "$PROMPT" \
   --mcp-config /etc/coach/mcp.json \
-  --allowedTools "Read,Glob,Grep,Edit,Write,Bash(python3 scripts/update-dashboard.py:*),Bash(python3 scripts/resolve_athlete.py:*),mcp__garmin,mcp__oura" \
+  --allowedTools "Read,Glob,Grep,Edit,Write,Bash(python3 scripts/update-dashboard.py:*),Bash(python3 scripts/hr_histogram.py:*),Bash(python3 scripts/resolve_athlete.py:*),mcp__garmin,mcp__oura" \
   --max-turns 40 </dev/null 2>&1)
 RC=$?
 

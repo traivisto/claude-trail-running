@@ -23,6 +23,8 @@ Notes on the numbers:
     trail paces are not comparable (terrain, wet rock).
   * Weekly rows are ISO weeks (Mon-Sun); the first/last row is marked * when the week reaches outside
     the month.
+  * Zone minutes come from ATHLETE_DIR/hr-histograms.csv (scripts/hr_histogram.py); only runs that have a
+    histogram are counted (shown as n/N).
   * If the cache ends before yesterday the output says so: this script never syncs.
 """
 
@@ -36,6 +38,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resolve_athlete import resolve  # noqa: E402
+from hr_histogram import load_zone_seconds  # noqa: E402
 
 RUN = ("Trail running", "Road running")
 EASY_PURPOSES = ("Recovery", "Aerobic base")
@@ -160,6 +163,22 @@ def summarize(rows, year: int, month: int, athlete: Path) -> str:
                   if hr else "")
         lines.append(f"Trail running (time, not pace): {len(trail)} sessions, {hm(t_min)}, "
                      f"{sum(f(r['elevation_m']) for r in trail):.0f} m ascent{hr_txt}")
+
+    try:
+        zs = load_zone_seconds(athlete)
+    except (OSError, SystemExit):
+        zs = {}
+    if zs:
+        parts = []
+        for label, sel in (("all runs", run), ("trail", trail), ("road", road)):
+            got = [r for r in sel if sum(zs.get(int(r["activity_id"]), [])) > 0]
+            if not got:
+                continue
+            z = [sum(zs[int(r["activity_id"])][i] for r in got) for i in range(5)]
+            parts.append(f"{label} ({len(got)}/{len(sel)} with HR data): " +
+                         " ".join(f"Z{i + 1} {s / 60:.0f}" for i, s in enumerate(z)) + " min")
+        if parts:
+            lines.append("Zone minutes (LTHR zones): " + " | ".join(parts))
 
     te_a = sum(f(r["aerobic_te"]) for r in R) / len(R)
     te_n = sum(f(r["anaerobic_te"]) for r in R) / len(R)

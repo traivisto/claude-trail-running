@@ -4,7 +4,7 @@ This folder contains a trail running coaching system. The code (skills, scripts,
 
 ## Athlete directory (ATHLETE_DIR)
 
-All personal files are read from and written to **`ATHLETE_DIR`** = `athletes/<id>/` (relative to this workspace root). Every bare filename in this file and in the skills (`athlete-profile.md`, `race-card.md`, `activity-cache.csv`, `events-log.md`, `memory.md`, `current-plan.md`, `training-program.md`, `race-day-guide.md`, `training-dashboard.html`, `aerobic-efficiency-splits.csv`, `telegram-last-update.txt`, `arkisto/`) means `ATHLETE_DIR/<that file>`.
+All personal files are read from and written to **`ATHLETE_DIR`** = `athletes/<id>/` (relative to this workspace root). Every bare filename in this file and in the skills (`athlete-profile.md`, `race-card.md`, `activity-cache.csv`, `events-log.md`, `memory.md`, `current-plan.md`, `training-program.md`, `race-day-guide.md`, `training-dashboard.html`, `aerobic-efficiency-splits.csv`, `hr-histograms.csv`, `telegram-last-update.txt`, `arkisto/`) means `ATHLETE_DIR/<that file>`.
 
 **Resolve ATHLETE_DIR at the start of every workflow, in this order:**
 1. `$COACH_ATHLETE_DIR`, if set (used for headless/NAS runs and multi-athlete setups);

@@ -63,7 +63,7 @@ Verify that all non-personal files a new user needs are actually present in the 
 
 ```bash
 for f in scripts/update-dashboard.py scripts/update-dashboard.bat scripts/resolve_athlete.py scripts/new-athlete.py \
-         scripts/telegram_poll.py scripts/hr_zones.py scripts/monthly_summary.py scripts/program_health.py scripts/prompts/telegram-poll.md \
+         scripts/telegram_poll.py scripts/hr_zones.py scripts/monthly_summary.py scripts/program_health.py scripts/hr_histogram.py scripts/prompts/telegram-poll.md \
          deploy/nas/README.md deploy/nas/Dockerfile deploy/nas/compose.yaml deploy/nas/mcp.json \
          deploy/nas/update-coach.sh deploy/nas/run-daily-sync.sh deploy/nas/coach-chat.sh \
          deploy/nas/claude.env.example deploy/nas/telegram.env.example deploy/nas/dotenv.example \
@@ -106,7 +106,7 @@ tracked by git.
 ```bash
 echo "=== personal files in root (must be none) ==="
 for f in athlete-profile.md race-card.md race-day-guide.md training-program.md current-plan.md \
-         events-log.md memory.md activity-cache.csv aerobic-efficiency-splits.csv \
+         events-log.md memory.md activity-cache.csv aerobic-efficiency-splits.csv hr-histograms.csv \
          training-dashboard.html telegram-last-update.txt telegram-conversation-log.md \
          telegram-test-offset.txt telegram-test-conversation-log.md coach-backlog.md \
          oura.env oura-today.json arkisto; do
@@ -114,7 +114,7 @@ for f in athlete-profile.md race-card.md race-day-guide.md training-program.md c
 done
 echo "=== tracked personal data (must be none) ==="
 git -C "$WORKSPACE" ls-files | grep -E '^athletes/' | grep -v '^athletes/\.gitkeep$'
-git -C "$WORKSPACE" ls-files | grep -E '(^|/)(athlete-profile|race-card|race-day-guide|training-program|current-plan|events-log|memory|activity-cache|aerobic-efficiency-splits|training-dashboard)\.(md|csv|html)$' | grep -v '^setup-template/'
+git -C "$WORKSPACE" ls-files | grep -E '(^|/)(athlete-profile|race-card|race-day-guide|training-program|current-plan|events-log|memory|activity-cache|aerobic-efficiency-splits|hr-histograms|training-dashboard)\.(md|csv|html)$' | grep -v '^setup-template/'
 ```
 
 Any hit → ❌. (Git history may still contain earlier commits of such files; flag that a history

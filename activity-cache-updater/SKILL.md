@@ -110,6 +110,23 @@ rpe, feel
 
 After appending rows, run **`aerobic-efficiency-updater/SKILL.md`**. It finds new qualifying road runs (Road running, not hill, not technical, ≥ 5 km) that are missing from `aerobic-efficiency-splits.csv`, fetches their splits and runs `scripts/update-dashboard.py`. If nothing qualifies it stops immediately. Skipping this step leaves the dashboard's aerobic efficiency chart stale.
 
+## Step 4c: HR histograms for new runs
+
+Time in HR zone is the load measure for runs (see `CLAUDE.md`, Activity analysis rule). It needs the
+per-second HR of each run, which the cache does not hold, so each new run gets an HR histogram in
+`ATHLETE_DIR/hr-histograms.csv` (zones are computed from it later with the Athlete Config boundaries, so a
+change of zones never needs a re-fetch):
+
+1. Run `python3 scripts/hr_histogram.py missing --since <earliest date of the new activities>`. It lists
+   Trail/Road running activities without a histogram. If it lists none, stop.
+2. For each listed id call `get_activity_fit_data` with the **numeric** `activity_id` and
+   `include_records=true`. The result is ~1 MB and is saved to a file: never read it into context.
+3. Run `python3 scripts/hr_histogram.py add <saved file path> <activity_id>` (idempotent; writes a marker
+   row when a run has no per-second HR, e.g. treadmill without a strap, so it is not fetched again).
+
+If more than ~15 runs are listed (a long gap or first backfill), do the first 15 and tell the user how many
+remain instead of fetching them all in one sync. Swimming, strength, cycling and walking get no histogram.
+
 ---
 
 ## Step 5: Report

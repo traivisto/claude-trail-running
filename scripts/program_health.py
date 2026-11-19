@@ -41,6 +41,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from resolve_athlete import resolve  # noqa: E402
+from hr_histogram import load_zone_seconds  # noqa: E402
 
 RUN = ("Trail running", "Road running")
 QUALITY_PURPOSES = ("Interval / VO2max", "Tempo / Threshold")
@@ -193,6 +194,30 @@ def main(argv) -> int:
     pct = (a_l4 / a_p4 - 1) * 100 if a_p4 else 0.0
     out.append(f"Run km per non-deload week: last 4 completed weeks {a_l4:.1f} ({len(l4)} weeks) vs previous 4 "
                f"{a_p4:.1f} ({len(p4)} weeks), {pct:+.0f} %")
+
+    try:
+        zs = load_zone_seconds(athlete)
+    except (OSError, SystemExit):
+        zs = {}
+    if zs:
+        out.append("Zone minutes of running sessions with an HR histogram (LTHR zones from Athlete Config; "
+                   "Z1 incl. the gap above its max; cov = runs with data / runs; trail = Trail running only)")
+        out.append("Week      Z1    Z2    Z3    Z4    Z5   | trail Z1  Z2  Z3+ | cov")
+        for mon in mondays:
+            run = [r for r in by_week.get(mon, []) if r["modality"] in RUN]
+            got = [r for r in run if sum(zs.get(int(r["activity_id"]), [])) > 0]
+            tot, trl = [0] * 5, [0] * 5
+            for r in got:
+                for i, s in enumerate(zs[int(r["activity_id"])]):
+                    tot[i] += s
+                    if r["modality"] == "Trail running":
+                        trl[i] += s
+            star = ("*" if mon == this_mon else "") + ("D" if mon in deloads else "")
+            out.append(f"{f'{mon.day}.{mon.month}.{star}':<8} "
+                       + " ".join(f"{s / 60:5.0f}" for s in tot)
+                       + f"  | {trl[0] / 60:9.0f} {trl[1] / 60:3.0f} {sum(trl[2:]) / 60:4.0f} | {len(got)}/{len(run)}")
+        out.append("(Weeks with cov below runs have missing histograms - run `python3 scripts/hr_histogram.py "
+                   "missing`; zone minutes only count runs with data.)")
 
     q_rows = sorted((r for r in rows if r["_d"] >= mondays[0] and is_quality(r)), key=lambda r: r["_d"])
     if q_rows:

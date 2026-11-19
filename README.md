@@ -234,6 +234,7 @@ Personal files (✅) live in `athletes/<id>/` and are git-ignored; shared files 
 | `scripts/resolve_athlete.py` | Finds the athlete directory (`$COACH_ATHLETE_DIR` or the single `athletes/*`). | ⬜ |
 | `scripts/hr_zones.py` | HR zone distribution of one activity using your LTHR-based zones from `Athlete Config`. | ⬜ |
 | `scripts/monthly_summary.py` | Compact monthly summary computed from the activity cache (used by the Telegram chat run). | ⬜ |
+| `scripts/hr_histogram.py` | Time-in-HR-zone cache: per-run HR histogram in `hr-histograms.csv`, zones computed from your `Athlete Config` (used by the activity sync, monthly summary and program health). | ⬜ |
 | `scripts/program_health.py` | Weekly aggregates for the program health check from the activity cache (used by the Telegram chat run). | ⬜ |
 | `scripts/telegram_poll.py` | Telegram long-polling loop; prompt in `scripts/prompts/telegram-poll.md`. | ⬜ |
 | `deploy/nas/` | NAS runtime: Dockerfile, compose, scripts, MCP config and `*.example` env templates. See `deploy/nas/README.md`. | ⬜ |
