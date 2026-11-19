@@ -67,7 +67,7 @@ If the user confirms, proceed — Step 6a will automatically clean up the old [C
 Read these in parallel **using the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale mount):
 
 1. `training-program.md` — current phase, active goals, session priority list, volume range
-2. `activity-cache.csv` — last 14 days: total km, elevation, session types, last hard session, rest days, consecutive training days. Read only the tail using `offset` near end-of-file with `limit: 50` — this gives plenty of context for a 14-day window at minimal token cost.
+2. `activity-cache.csv` — last 14 days: total km, elevation, session types, last hard session, rest days, consecutive training days. Read only the tail using `offset` near end-of-file with `limit: 50` — this gives plenty of context for a 14-day window at minimal token cost. For the weekly load figures also run `python3 scripts/program_health.py` (columns RunMin, Trail, RunKm, Hrs, D+) and quote **running minutes (and D+) first, km second**: for a trail runner time is the load measure, km depends on terrain. Time per HR zone of completed runs is not in the cache yet (development backlog); until it is, use a run's `avg_hr` as a rough indicator, or `scripts/hr_zones.py` / the HR-zone rule in `CLAUDE.md` for one key session.
 3. `events-log.md` — any entries in last 14 days
 
 Also fetch live readiness data if available (these can fail silently):
@@ -75,7 +75,7 @@ Also fetch live readiness data if available (these can fail silently):
 - `mcp__garmin__get_morning_training_readiness` (today)
 - `mcp__oura__oura_readiness` with `{"date": "YYYY-MM-DD"}` (today)
 
-**Load trend check:** also call `mcp__garmin__get_training_load_trend` for at least the last 4 weeks (6 weeks preferred). Look at chronic load (CTL) and its direction, not only today's ACWR — Garmin's "optimal" range is computed from CTL itself (0.8–1.5 × CTL), so ACWR can read OPTIMAL while the base is eroding. Record in the plan's Context line: CTL now, CTL peak of the last 6 weeks, and weekly running km for the last 3 weeks. If CTL is more than 15 % below the 6-week peak, say so and state whether the drop is planned (deload/taper) or due to missed sessions.
+**Load trend check:** also call `mcp__garmin__get_training_load_trend` for at least the last 4 weeks (6 weeks preferred). Look at chronic load (CTL) and its direction, not only today's ACWR — Garmin's "optimal" range is computed from CTL itself (0.8–1.5 × CTL), so ACWR can read OPTIMAL while the base is eroding. Record in the plan's Context line: CTL now, CTL peak of the last 6 weeks, and weekly running minutes (with km as a secondary figure) for the last 3 weeks. If CTL is more than 15 % below the 6-week peak, say so and state whether the drop is planned (deload/taper) or due to missed sessions.
 
 If Garmin/Oura is unavailable, proceed with cache data only — note it briefly in the plan context line.
 
@@ -97,7 +97,12 @@ Use the **session priority list** from the current phase in training-program.md 
 
 ### Volume
 
-Stay within the phase's volume range from training-program.md. When returning from disruption, target the lower end. Recovery weeks: ~65% of recent peak.
+Budget the week in **running minutes per HR zone** (plus D+), not in km. Time in zone is what builds a trail runner's fitness; km depends on terrain and conditions and cannot be compared between trail runs. Rules:
+- Take the phase's volume range from training-program.md. If the program states it in km, convert it to minutes with the athlete's recent road minutes-per-km (`program_health.py`: RunMin / RunKm of road-only weeks) and say so in the plan; suggest restating the program in hours when it is next revised.
+- Plan every session as duration + absolute bpm zone (as the Garmin workouts are). Count warm-up and cool-down in the zone they are run in; strides/hill sprints are listed separately, not as zone time. Respect the program's polarization rule (no Z3 by accident).
+- **Trail running** (Garmin activity type Trail running, which the athlete picks whenever the route leaves roads/built paths): give time and HR zone only. Never a pace target and never a km figure.
+- km are only a rough estimate for road runs, derived from the athlete's recent road pace, and secondary.
+- When returning from disruption, target the lower end. Recovery weeks: ~65% of recent peak running minutes.
 
 ### Day-by-day placement
 
@@ -148,7 +153,9 @@ Use this structure:
 
 ---
 
-**Total running volume:** ~X km
+**Total running time:** X min — planned, summed from the sessions above: Z1 X · Z2 X · Z3 X · Z4 X · Z5 X (strides/sprints separate) · D+ ~X m
+**Trail:** X min (time + HR zone only, no km or pace)
+**Road km (rough estimate, road runs only):** ~X km
 **Strength sessions:** X
 **Longest session:** X min
 ```
