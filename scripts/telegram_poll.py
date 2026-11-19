@@ -59,7 +59,8 @@ WORKSPACE = Path(__file__).resolve().parent.parent
 PROMPT_FILE = Path(__file__).resolve().parent / "prompts" / "telegram-poll.md"
 # Read-only Garmin tools + the whole Oura server (read-only).
 GARMIN_READ_TOOLS = ",".join("mcp__garmin__" + t for t in (
-    "get_activities_by_date", "get_activity", "get_activity_splits", "get_sleep_summary",
+    "get_activities_by_date", "get_activity", "get_activity_splits", "get_activity_fit_data",
+    "get_sleep_summary",
     "get_training_readiness", "get_morning_training_readiness", "get_training_status",
     "get_hrv_data", "get_body_battery", "get_rhr_day", "get_stats", "get_stress_summary",
     "get_scheduled_workouts", "get_workouts", "get_race_predictions", "get_vo2max_trend"))
@@ -70,7 +71,9 @@ GARMIN_WORKOUT_TOOLS = ",".join("mcp__garmin__" + t for t in (
     "upload_workout", "schedule_workout", "delete_workout"))
 ALLOWED_TOOLS = os.environ.get(
     "TELEGRAM_ALLOWED_TOOLS",
-    f"Read,Glob,Grep,Edit,Write,{GARMIN_READ_TOOLS},{GARMIN_WORKOUT_TOOLS},mcp__oura")
+    # The only Bash allowed is the fixed HR-zone script (no free shell).
+    f"Read,Glob,Grep,Edit,Write,Bash(python3 scripts/hr_zones.py:*),"
+    f"{GARMIN_READ_TOOLS},{GARMIN_WORKOUT_TOOLS},mcp__oura")
 MAX_TURNS = os.environ.get("TELEGRAM_MAX_TURNS", "60")  # a week of workouts is ~25 tool calls
 MCP_CONFIG = os.environ.get("COACH_MCP_CONFIG", "/etc/coach/mcp.json")
 POLL_TIMEOUT = int(os.environ.get("TELEGRAM_POLL_TIMEOUT", "50"))

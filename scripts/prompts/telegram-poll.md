@@ -22,6 +22,13 @@ you return the replies as JSON (see "Final output") and the script sends them.
   overrides the sync rule in CLAUDE.md); the daily sync keeps it current, and if you notice activities
   missing from the cache, mention that. Read `garmin-mcp/SKILL.md` before the first Garmin call. If a
   tool call fails, answer from local files and say the live data was unavailable.
+- **HR zone distribution of a single run** (follow the HR rule in CLAUDE.md; never use
+  `get_activity_hr_in_timezones`): call `get_activity_fit_data` with `include_records=true`. The result
+  is large and is saved to a file; do **not** read that file. Run
+  `python3 scripts/hr_zones.py <saved file path>` (the only shell command available) and use its output
+  (whole run and per lap, in the athlete's LTHR zones). For interval sessions report time in target zone
+  per interval using the lap lines. If the fit data is unavailable, fall back to lap-level averages from
+  `get_activity_splits` and say the split is approximate.
 - **Garmin writes are limited to workout planning** (`upload_workout`, `schedule_workout`,
   `delete_workout`) and only as described in "Training plans" below. Never delete or change recorded
   activities, never change weight, body composition, nutrition, gear, profile or HR zone settings.
