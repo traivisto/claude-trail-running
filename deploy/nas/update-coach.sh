@@ -29,11 +29,12 @@ before=$($GIT rev-parse HEAD) || exit 1
 $GIT pull --ff-only || { say "ERROR: git pull failed (diverged history or no network?)"; exit 1; }
 after=$($GIT rev-parse HEAD) || exit 1
 if [ "$before" = "$after" ]; then
-  say "Already up to date ($(echo "$after" | cut -c1-7))"
-  exit 0
+  say "Git already up to date ($(echo "$after" | cut -c1-7)); checking deploy files anyway"
+  changed=""
+else
+  changed=$($GIT diff --name-only "$before" "$after")
+  say "Updated $(echo "$before" | cut -c1-7) -> $(echo "$after" | cut -c1-7)"
 fi
-changed=$($GIT diff --name-only "$before" "$after")
-say "Updated $(echo "$before" | cut -c1-7) -> $(echo "$after" | cut -c1-7)"
 
 rebuild=0
 restart=0
