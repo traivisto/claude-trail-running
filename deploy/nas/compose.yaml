@@ -51,3 +51,24 @@ services:
       - ./athletes:/workspace/athletes
       - ./home:/home/coach
       - ./logs:/var/log/coach
+
+  # Always-on Telegram long-polling loop: replies within seconds, no scheduled task needed, and nothing
+  # is written to disk while idle. Disable the Task Scheduler poll task when using this (only one poller
+  # may use a bot token). Start:  docker compose up -d coach-telegram
+  # After changing scripts/telegram_poll.py:  docker compose restart coach-telegram
+  coach-telegram:
+    <<: *coach-common
+    command: ["python3", "scripts/telegram_poll.py", "--loop"]
+    restart: unless-stopped
+    init: true   # reaps the claude / MCP child processes
+    logging:
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "3"
+    volumes:
+      - ./mcp.json:/etc/coach/mcp.json:ro
+      - ./app:/workspace:ro
+      - ./athletes:/workspace/athletes
+      - ./home:/home/coach
+      - ./logs:/var/log/coach

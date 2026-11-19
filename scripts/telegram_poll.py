@@ -2,29 +2,39 @@
 """
 telegram_poll.py
 ────────────────
-One poll cycle of the Telegram coaching bot. Intended to run hourly (DSM Task Scheduler) inside the
-coach container:
+Telegram coaching bot. Two ways to run it inside the coach container:
 
-    docker compose run --rm -T coach python3 scripts/telegram_poll.py
+  Single poll (e.g. DSM Task Scheduler, or a manual test):
+      docker compose run --rm -T coach python3 scripts/telegram_poll.py
 
-What it does:
-  1. Reads new Telegram messages (Bot API getUpdates) from the allowed chat. No messages -> exit
-     immediately; Claude is NOT called, so empty runs cost nothing.
+  Long-polling loop (always-on container, replies within seconds; see the `coach-telegram` service in
+  deploy/nas/compose.yaml):
+      python3 scripts/telegram_poll.py --loop
+
+What one cycle does:
+  1. Reads new Telegram messages (Bot API getUpdates) from the allowed chat. No messages -> nothing
+     happens; Claude is NOT called, so idle cycles cost nothing (and write nothing to disk).
   2. Calls `claude -p` once with scripts/prompts/telegram-poll.md. Claude reads the athlete context,
      updates the conversation log / events log, and returns the replies as JSON.
   3. Sends the replies via the Bot API and only then advances the offset file.
+
+In --loop mode getUpdates is a long poll (Telegram holds the request open up to TELEGRAM_POLL_TIMEOUT
+seconds and answers the moment a message arrives). Network errors and failed Claude runs are retried
+with a back-off; the process only ends on SIGTERM/SIGKILL (Docker restarts it).
 
 Configuration (environment; see deploy/nas/telegram.env.example):
   TELEGRAM_BOT_TOKEN          bot token                               (required)
   TELEGRAM_ALLOWED_CHAT_ID    the only chat id that is served         (required)
   TELEGRAM_OFFSET_FILE        default <athlete>/telegram-last-update.txt
   TELEGRAM_CONVLOG_FILE       default <athlete>/telegram-conversation-log.md
+  TELEGRAM_POLL_TIMEOUT       long-poll seconds in --loop mode, default 50
   COACH_ATHLETE_DIR           see scripts/resolve_athlete.py
   CLAUDE_BIN                  default "claude"
   COACH_LOG_DIR               default /var/log/coach
 
-Only one poller may use a bot token at a time (Telegram would answer 409 to the other).
-Pure stdlib.
+Only one poller may use a bot token at a time (Telegram would answer 409 to the other); a lock file
+also keeps a second local instance from running next to a loop. Pure stdlib.
+Changes to this file need a restart of the loop container; edits to the prompt file apply immediately.
 """
 
 import fcntl
@@ -33,6 +43,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -46,7 +57,7 @@ from resolve_athlete import resolve  # noqa: E402
 TZ = ZoneInfo("Europe/Helsinki")
 WORKSPACE = Path(__file__).resolve().parent.parent
 PROMPT_FILE = Path(__file__).resolve().parent / "prompts" / "telegram-poll.md"
-# Read-only Garmin tools + the whole Oura server (read-only). No write tools (upload/schedule/delete...).
+# Read-only Garmin tools + the whole Oura server (read-only).
 GARMIN_READ_TOOLS = ",".join("mcp__garmin__" + t for t in (
     "get_activities_by_date", "get_activity", "get_activity_splits", "get_sleep_summary",
     "get_training_readiness", "get_morning_training_readiness", "get_training_status",
@@ -62,7 +73,10 @@ ALLOWED_TOOLS = os.environ.get(
     f"Read,Glob,Grep,Edit,Write,{GARMIN_READ_TOOLS},{GARMIN_WORKOUT_TOOLS},mcp__oura")
 MAX_TURNS = os.environ.get("TELEGRAM_MAX_TURNS", "60")  # a week of workouts is ~25 tool calls
 MCP_CONFIG = os.environ.get("COACH_MCP_CONFIG", "/etc/coach/mcp.json")
+POLL_TIMEOUT = int(os.environ.get("TELEGRAM_POLL_TIMEOUT", "50"))
 MAX_FAILURES = 3
+RETRY_AFTER_CLAUDE_FAILURE = 60  # seconds, loop mode
+MAX_BACKOFF = 300                # seconds, loop mode, network errors
 ERROR_TEXT = os.environ.get(
     "TELEGRAM_ERROR_TEXT",
     "Sorry, I could not process your message because of a technical error. Please try again later.",
@@ -157,26 +171,16 @@ def parse_replies(text: str, n: int) -> list:
     return found
 
 
-def main() -> int:
-    token = os.environ["TELEGRAM_BOT_TOKEN"]
-    allowed = int(os.environ["TELEGRAM_ALLOWED_CHAT_ID"])
-    athlete = resolve()
-    offset_file = Path(os.environ.get("TELEGRAM_OFFSET_FILE") or athlete / "telegram-last-update.txt")
-    convlog = Path(os.environ.get("TELEGRAM_CONVLOG_FILE") or athlete / "telegram-conversation-log.md")
+def poll_once(token: str, allowed: int, athlete: Path, offset_file: Path, convlog: Path,
+              timeout: int) -> int:
+    """One getUpdates + (if there are messages) one Claude run. Returns 0 (idle or success) or 1
+    (Claude/sending failed; the offset was not advanced, so the messages are retried)."""
     fail_file = offset_file.with_name(offset_file.name + ".fails")
-
-    lock = open(offset_file.with_name(offset_file.name + ".lock"), "w")
-    try:
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except OSError:
-        log("another poll is still running; exiting")
-        return 0
-
     last = read_int(offset_file)
     updates = tg(token, "getUpdates", {
-        "offset": last + 1, "limit": 100, "timeout": 0,
+        "offset": last + 1, "limit": 100, "timeout": timeout,
         "allowed_updates": json.dumps(["message"]),
-    })
+    }, timeout=timeout + 15)
     if not updates:
         return 0  # nothing new; Claude is not called
     max_id = max(u["update_id"] for u in updates)
@@ -213,6 +217,38 @@ def main() -> int:
     fail_file.unlink(missing_ok=True)
     log(f"replied to {len(msgs)} message(s); offset -> {max_id}")
     return 0
+
+
+def main() -> int:
+    loop = "--loop" in sys.argv[1:]
+    token = os.environ["TELEGRAM_BOT_TOKEN"]
+    allowed = int(os.environ["TELEGRAM_ALLOWED_CHAT_ID"])
+    athlete = resolve()
+    offset_file = Path(os.environ.get("TELEGRAM_OFFSET_FILE") or athlete / "telegram-last-update.txt")
+    convlog = Path(os.environ.get("TELEGRAM_CONVLOG_FILE") or athlete / "telegram-conversation-log.md")
+
+    lock = open(offset_file.with_name(offset_file.name + ".lock"), "w")  # held for the process lifetime
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        log("another poll is still running; exiting")
+        return 0
+
+    if not loop:
+        return poll_once(token, allowed, athlete, offset_file, convlog, timeout=0)
+
+    log(f"long-polling started (timeout {POLL_TIMEOUT}s)")
+    backoff = 5
+    while True:
+        try:
+            rc = poll_once(token, allowed, athlete, offset_file, convlog, timeout=POLL_TIMEOUT)
+            backoff = 5
+            if rc != 0:
+                time.sleep(RETRY_AFTER_CLAUDE_FAILURE)  # let a transient Claude/Garmin problem pass
+        except Exception as e:  # noqa: BLE001 - network/Telegram errors: back off and keep going
+            log(f"poll error: {e}; retrying in {backoff}s")
+            time.sleep(backoff)
+            backoff = min(backoff * 2, MAX_BACKOFF)
 
 
 if __name__ == "__main__":
