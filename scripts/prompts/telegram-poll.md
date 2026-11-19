@@ -44,6 +44,7 @@ you return the replies as JSON (see "Final output") and the script sends them.
 
   ```
   ## {{TODAY}} — <short title> [open]
+  - Source: telegram
   - Asked: <the athlete's request in their words>
   - Missing: <tool / fixed script / permission that was missing>
   - Proposal: <how it could be solved, e.g. new scripts/<name>.py with these inputs/outputs>

@@ -114,9 +114,17 @@ Rest and load recommendations must be grounded in measured data and must not pre
 3. **Small signals stay small.** A weak signal (HRV dip within BALANCED, one sensitive-HR run) is used for the go/no-go on the next hard session, not as grounds for blocking easy activity the same day.
 
 ## Development backlog (coach-backlog.md)
-`ATHLETE_DIR/coach-backlog.md` is a list of development needs that came up in Telegram chat (a missing
-tool, script or permission), written by the chat bot only after the athlete agreed. Chat runs cannot edit
-code; development happens in interactive SSH sessions. **At the start of an interactive session
-(not a headless `-p` run), if the backlog has `[open]` entries, list them in one line each and ask which
-to work on.** When an entry is done, change its tag to `[done YYYY-MM-DD]` and note the commit. The file
-lives in the athlete directory, so it is git-ignored like all personal data.
+`ATHLETE_DIR/coach-backlog.md` is the **single place for every future improvement** of this coaching
+system: missing tools/scripts/permissions that came up in Telegram chat, ideas and fixes from SSH sessions,
+documentation and clean-up tasks, multi-user groundwork, reminders (e.g. token renewals). It lives in the
+athlete directory because that is the only place the chat bot can write (the code is read-only for chat
+runs) and it is backed up with the rest of the athlete data; it is git-ignored.
+
+- **Who adds entries:** the Telegram bot (only after the athlete agreed) and any interactive session
+  (when the athlete says "add this to the backlog" or when work is left undone). Format per entry:
+  `## YYYY-MM-DD — <title> [open]` with `- Source: telegram|ssh`, `- Asked/Why`, `- Missing/Scope`,
+  `- Proposal`, `- Example` lines as relevant.
+- **Development happens in interactive SSH sessions.** At the start of an interactive session (not a
+  headless `-p` run), if the backlog has `[open]` entries, list them in one line each and ask which to
+  work on. Headless runs never work on backlog items.
+- When an entry is done, change its tag to `[done YYYY-MM-DD]` and note the commit. Never delete entries.
