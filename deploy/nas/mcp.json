@@ -5,7 +5,7 @@
       "command": "uvx",
       "args": [
         "--python", "3.12",
-        "--from", "git+https://github.com/Taxuspt/garmin_mcp",
+        "--from", "git+https://github.com/Taxuspt/garmin_mcp@a2ca5fcac34524b83814fe2fcf3d479f8a75983f",
         "garmin-mcp"
       ],
       "env": {
@@ -15,7 +15,7 @@
     "oura": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@daveremy/oura-mcp"],
+      "args": ["-y", "@daveremy/oura-mcp@0.1.5"],
       "env": {
         "OURA_TOKEN": "${OURA_TOKEN}"
       }

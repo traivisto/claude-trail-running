@@ -4,15 +4,17 @@
 # personal is mounted at runtime (see compose.yaml).
 FROM node:22-bookworm-slim
 
-# Pin after the first successful build (e.g. 2.1.x) so an upgrade is a deliberate act.
-ARG CLAUDE_CODE_VERSION=latest
+# Versions are pinned so an upgrade is a deliberate act: change the numbers (here, the uv tag below, and
+# the garmin_mcp commit / oura-mcp version in mcp.json), rebuild with --no-cache and run the tests in
+# deploy/nas/README.md ("Upgrading").
+ARG CLAUDE_CODE_VERSION=2.1.328
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends python3 git openssh-client curl ca-certificates tzdata procps jq \
  && rm -rf /var/lib/apt/lists/*
 
 # uv / uvx (Python tool runner used by the Garmin MCP server). Pin the tag after the first build.
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.13.9 /uv /uvx /usr/local/bin/
 
 RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
  && npm cache clean --force

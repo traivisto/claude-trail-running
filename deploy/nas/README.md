@@ -96,3 +96,17 @@ task still serves the production bot.
   (private git repo or similar) is in place.
 - Pin `CLAUDE_CODE_VERSION` in the Dockerfile and the `uv` image tag after the first successful build.
 - Garmin/Oura/Telegram MCP servers, a workspace `.mcp.json`, cron scheduling and data sync come next.
+
+## Upgrading pinned versions
+
+Versions are pinned: Claude Code and the uv tag in `Dockerfile`, the garmin_mcp commit and the
+oura-mcp version in `mcp.json`. To upgrade one:
+
+1. Change the number (latest Claude Code: `npm view @anthropic-ai/claude-code version`; garmin_mcp:
+   `git ls-remote https://github.com/Taxuspt/garmin_mcp HEAD`; oura: `npm view @daveremy/oura-mcp version`).
+2. Copy `Dockerfile` / `mcp.json` from `app/deploy/nas/` to `/volume1/docker/coach/`, then
+   `sudo docker compose build --no-cache` and `sudo docker compose restart coach-telegram`.
+3. Run the two connectivity tests under "Phase B", then send one Telegram message.
+4. If something breaks, set the previous number back and rebuild.
+
+`garmin-mcp-auth` (token renewal) uses the same pinned URL if you add `@<commit>` to it.
