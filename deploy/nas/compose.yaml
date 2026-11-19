@@ -1,37 +1,53 @@
 # Headless coach runtime for the Synology NAS.
 # Place this file, the Dockerfile and the folders below together in /volume1/docker/coach/.
 #
-#   app/        shared code repo (skills, scripts, CLAUDE.md) — mounted read-only
+#   app/        shared code repo (skills, scripts, CLAUDE.md) — read-only for headless jobs,
+#               read/write only in the interactive `coach-edit` service (SSH sessions)
 #   athletes/   personal data, one folder per athlete (athletes/<id>/) — read/write
 #   home/       container HOME: Claude settings, Garmin tokens (~/.garminconnect) — read/write
 #   logs/       run logs
 #   secrets/    claude.env with CLAUDE_CODE_OAUTH_TOKEN (and later other tokens) — never in git
 #
 # uid 1031 / gid 100 = the NAS "coach" user (check with `id coach`).
+x-coach-common: &coach-common
+  image: coach-runtime:local
+  user: "1031:100"
+  working_dir: /workspace
+  environment:
+    TZ: Europe/Helsinki
+    HOME: /home/coach
+    # Which athlete this runtime serves. With several athletes, run one container/job per athlete.
+    COACH_ATHLETE_DIR: /workspace/athletes/tommi
+  env_file:
+    - ./secrets/claude.env
+    - ./secrets/oura.env        # OURA_TOKEN=... (create in phase B)
+    - ./secrets/telegram.env    # bot token, allowed chat id (create in phase C)
+  restart: "no"
+  # Memory limit works on DSM; a `cpus:` limit does NOT (kernel has no CFS scheduler cgroup).
+  mem_limit: 1g
+  security_opt:
+    - no-new-privileges:true
+
 services:
+  # Headless jobs (Telegram poll, daily sync): code is read-only.
   coach:
+    <<: *coach-common
     build:
       context: .
-    image: coach-runtime:local
-    user: "1031:100"
-    working_dir: /workspace
-    environment:
-      TZ: Europe/Helsinki
-      HOME: /home/coach
-      # Which athlete this runtime serves. With several athletes, run one container/job per athlete.
-      COACH_ATHLETE_DIR: /workspace/athletes/tommi
-    env_file:
-      - ./secrets/claude.env
-      - ./secrets/oura.env        # OURA_TOKEN=... (create in phase B)
-      - ./secrets/telegram.env    # bot token, allowed chat id (create in phase C)
     volumes:
       - ./mcp.json:/etc/coach/mcp.json:ro   # MCP servers (garmin, oura); use with --mcp-config
       - ./app:/workspace:ro
       - ./athletes:/workspace/athletes
       - ./home:/home/coach
       - ./logs:/var/log/coach
-    restart: "no"
-    # Memory limit works on DSM; a `cpus:` limit does NOT (kernel has no CFS scheduler cgroup).
-    mem_limit: 1g
-    security_opt:
-      - no-new-privileges:true
+
+  # Interactive SSH sessions (coach-chat.sh): code is writable so Claude can edit skills/scripts.
+  # NOTE: edits here diverge from the PC git repo — see deploy/nas/README.md.
+  coach-edit:
+    <<: *coach-common
+    volumes:
+      - ./mcp.json:/etc/coach/mcp.json:ro
+      - ./app:/workspace
+      - ./athletes:/workspace/athletes
+      - ./home:/home/coach
+      - ./logs:/var/log/coach

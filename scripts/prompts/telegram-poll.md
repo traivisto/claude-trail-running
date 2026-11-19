@@ -17,9 +17,13 @@ you return the replies as JSON (see "Final output") and the script sends them.
 
 ## Rules for this run
 
-- Lightweight chat run: do **not** call Garmin or Oura and do not sync the activity cache (this
-  overrides the sync rule in CLAUDE.md for this run). Use local files only. If recency matters, say the
-  cache may not include the very latest sessions.
+- Lightweight chat run. Garmin (`mcp__garmin__*`, read-only tools) and Oura (`mcp__oura__*`) are
+  available: call them only when the question needs live data (today's readiness, sleep, HRV, a run
+  that is not yet in the cache) and keep calls few. Never write to Garmin (no uploads, scheduling or
+  deletes). Do not sync the activity cache in this run (this overrides the sync rule in CLAUDE.md);
+  if you notice activities missing from the cache, mention that the daily sync will add them.
+  Read `garmin-mcp/SKILL.md` before the first Garmin call. If a tool call fails, answer from local files
+  and say the live data was unavailable.
 - Follow the rest of CLAUDE.md (athlete context rule, load and rest reasoning: quote numbers, separate
   program structure from physiological need).
 - Never paste whole files or internal paths into a reply.

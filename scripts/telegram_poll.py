@@ -46,7 +46,15 @@ from resolve_athlete import resolve  # noqa: E402
 TZ = ZoneInfo("Europe/Helsinki")
 WORKSPACE = Path(__file__).resolve().parent.parent
 PROMPT_FILE = Path(__file__).resolve().parent / "prompts" / "telegram-poll.md"
-ALLOWED_TOOLS = "Read,Glob,Grep,Edit,Write"
+# Read-only Garmin tools + the whole Oura server (read-only). No write tools (upload/schedule/delete...).
+GARMIN_READ_TOOLS = ",".join("mcp__garmin__" + t for t in (
+    "get_activities_by_date", "get_activity", "get_activity_splits", "get_sleep_summary",
+    "get_training_readiness", "get_morning_training_readiness", "get_training_status",
+    "get_hrv_data", "get_body_battery", "get_rhr_day", "get_stats", "get_stress_summary",
+    "get_scheduled_workouts", "get_race_predictions", "get_vo2max_trend"))
+ALLOWED_TOOLS = os.environ.get(
+    "TELEGRAM_ALLOWED_TOOLS", f"Read,Glob,Grep,Edit,Write,{GARMIN_READ_TOOLS},mcp__oura")
+MCP_CONFIG = os.environ.get("COACH_MCP_CONFIG", "/etc/coach/mcp.json")
 MAX_FAILURES = 3
 ERROR_TEXT = os.environ.get(
     "TELEGRAM_ERROR_TEXT",
@@ -117,6 +125,8 @@ def build_prompt(athlete: Path, convlog: Path, msgs: list) -> str:
 def run_claude(prompt: str) -> str:
     cmd = [os.environ.get("CLAUDE_BIN", "claude"), "-p", prompt,
            "--allowedTools", ALLOWED_TOOLS, "--max-turns", "30"]
+    if Path(MCP_CONFIG).exists():
+        cmd += ["--mcp-config", MCP_CONFIG]
     # stdin=DEVNULL: otherwise `claude -p` waits ~3 s for piped input before proceeding
     r = subprocess.run(cmd, cwd=WORKSPACE, capture_output=True, text=True, timeout=900,
                        stdin=subprocess.DEVNULL)
