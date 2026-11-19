@@ -7,8 +7,9 @@
 #   2. git pull --ff-only inside the coach-edit container (uses the deploy key; keeps file ownership).
 #   3. Copies changed deploy files (compose.yaml, mcp.json, Dockerfile, *.sh) from app/deploy/nas/ to
 #      this folder, rebuilds the image if the Dockerfile changed.
-#   4. Recreates the always-on coach-telegram container if code or configuration it uses changed
-#      (prompt-only changes need no restart: the prompt is read on every run).
+#   4. Recreates the always-on coach-telegram container if code or configuration it uses changed, also when
+#      the code was pulled outside this script (commit stamp in coach-telegram.rev; prompt-only changes
+#      need no restart: the prompt is read on every run).
 #   5. Runs a smoke test and appends a summary to logs/update.log.
 # The exit code is non-zero on failure.
 cd /volume1/docker/coach || exit 1
@@ -54,7 +55,20 @@ for f in compose.yaml mcp.json Dockerfile run-daily-sync.sh coach-chat.sh update
 done
 chmod +x run-daily-sync.sh coach-chat.sh update-coach.sh 2>/dev/null
 
-echo "$changed" | grep -Eq '^(scripts/(telegram_poll|resolve_athlete|hr_zones|monthly_summary|program_health)\.py)$' && restart=1
+CODE_RE='^(scripts/(telegram_poll|resolve_athlete|hr_zones|monthly_summary|program_health)\.py)$'
+echo "$changed" | grep -Eq "$CODE_RE" && restart=1
+
+# Code that was pulled outside this script (a manual git pull) leaves $changed empty, yet the running
+# container still has the old code (ALLOWED_TOOLS etc. are read only at start). So also compare with the
+# commit coach-telegram was last (re)created at, kept in coach-telegram.rev. No stamp yet -> restart once.
+REV=coach-telegram.rev
+deployed=$(cat "$REV" 2>/dev/null)
+if [ -z "$deployed" ]; then
+  restart=1
+elif [ "$deployed" != "$after" ]; then
+  since=$($GIT diff --name-only "$deployed" "$after" 2>/dev/null) || restart=1   # unknown commit -> restart
+  echo "$since" | grep -Eq "$CODE_RE" && restart=1
+fi
 
 if [ "$rebuild" = 1 ]; then
   say "  rebuilding image"
@@ -64,6 +78,7 @@ if [ "$restart" = 1 ]; then
   say "  recreating coach-telegram"
   $DC up -d --force-recreate coach-telegram || { say "ERROR: could not start coach-telegram"; exit 1; }
 fi
+echo "$after" > "$REV"
 
 out=$($DC run --rm -T coach python3 scripts/resolve_athlete.py </dev/null 2>&1) \
   && say "Smoke test ok (athlete: $out)" || { say "ERROR: smoke test failed: $out"; exit 1; }

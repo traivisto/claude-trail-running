@@ -170,7 +170,7 @@ sudo docker compose run --rm coach-edit git -C /workspace config core.sshCommand
 Then, whenever there is something new on GitHub: `sudo /volume1/docker/coach/update-coach.sh`. It stops if
 `app/` has uncommitted changes (e.g. from an SSH coach session), pulls fast-forward only, copies changed
 deploy files (compose.yaml, mcp.json, Dockerfile, the `.sh` scripts) next to compose.yaml, rebuilds the image
-if the Dockerfile changed, recreates `coach-telegram` if code or configuration it uses changed, runs a smoke
+if the Dockerfile changed, recreates `coach-telegram` if code or configuration it uses changed (also when the code was pulled by hand: the commit of the last recreate is kept in `coach-telegram.rev`; without that file it restarts once), runs a smoke
 test and logs to `logs/update.log`. It also stops with a clear message if `.env` is missing.
 
 SSH coach sessions (`coach-chat.sh`) can edit the code because `coach-edit` mounts it writable; commit those
