@@ -132,8 +132,8 @@ production offset and conversation memory), then
 After changing `scripts/telegram_poll.py` the container must be restarted
 (`sudo docker compose restart coach-telegram`; `update-coach.sh` does it). Prompt-only changes apply on the
 next message. What the chat run may call is set in `ALLOWED_TOOLS` in `scripts/telegram_poll.py`: read-only
-Garmin tools, a few reversible Garmin writes, Oura, file tools and two fixed scripts
-(`scripts/hr_zones.py`, `scripts/monthly_summary.py`) — there is no free shell.
+Garmin tools, a few reversible Garmin writes, Oura, file tools and three fixed scripts
+(`scripts/hr_zones.py`, `scripts/monthly_summary.py`, `scripts/program_health.py`) — there is no free shell.
 
 ## Scheduling (DSM Task Scheduler, user root)
 

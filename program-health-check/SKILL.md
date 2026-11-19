@@ -43,10 +43,9 @@ Read these files **using the Read tool, not bash** (see CLAUDE.md File reading r
 1. `ATHLETE_DIR/training-program.md` — phase map, volume ranges, session priorities per phase, current position, explicit race-specific milestones
 2. `ATHLETE_DIR/race-card.md` — race date, start time, distance, elevation, terrain notes
 3. `ATHLETE_DIR/athlete-profile.md` Athlete Config — `typical_weekly_km`, `long_run_threshold_km`, `hill_modifier_threshold_m_per_km`, HRV/RHR baselines
-4. `ATHLETE_DIR/activity-cache.csv` — classified activity history. For 8-week window, read the tail using `offset` near end-of-file with `limit: 200` — covers 100 days even at high session frequency, at much lower token cost than the full file.
-5. `ATHLETE_DIR/events-log.md` — illness, travel, disruptions, tests, milestones (last 60 days)
+4. `ATHLETE_DIR/events-log.md` — illness, travel, disruptions, tests, milestones (the script also prints the last 60 days; read the file for older context)
 
-Before analysing, apply the **Activity cache sync rule** in `CLAUDE.md` (single
+The activity cache itself is read by `scripts/program_health.py` (Step 3), not by you. Before running it, apply the **Activity cache sync rule** in `CLAUDE.md` (single
 source of truth for cache freshness): call `get_activities_by_date` from the day
 after the last cached date through today, and run the `activity-cache-updater`
 skill if anything new is returned. Do not skip this because the cache looks recent.
@@ -75,34 +74,22 @@ does not match the program's **Current Position** section (stale update).
 
 ---
 
-## Step 3: Analyse the last 8 weeks from the cache
+## Step 3: Weekly aggregates (computed by script)
 
-Group all activities in the cache into ISO weeks for the last 8 weeks. For
-each week compute:
+Do **not** compute these by hand. Run `python3 scripts/program_health.py [weeks]` (from the workspace
+root, `python3` on Linux; default 8 ISO weeks) after the sync in Step 1. It is the single place where
+the aggregates are defined, in every environment (SSH, Cowork, Telegram), so its docstring is the
+authority for the exact definitions. Per ISO week it prints: running km, hours, D+, longest run
+(km/min), strength sessions, hill sessions (>= 200 m), technical-terrain sessions, night sessions, quality
+sessions (purpose, name keyword or anaerobic TE > 2.5), grey-zone sessions (avg-HR proxy from `Athlete
+Config`), back-to-back weekends (Sat long run + Sun >= 10 km); plus the 4-week volume trend (average run
+km per non-deload week, 4 vs the previous 4), the dates of quality and strength sessions, D+ per calendar
+month, night sessions in 8 weeks and the last 60 days of the events log. Planned deload weeks are marked
+`D` (read from `training-program.md`) and are excluded from the trend.
 
-- Total running distance (Trail running + Road running modalities)
-- Total duration (all modalities)
-- Total elevation gain
-- Longest single session (distance and duration)
-- Count of strength sessions
-- Total elevation gain (m D+)
-- Count of sessions with elevation gain ≥ 200 m (hill sessions)
-- Count of technical-terrain sessions
-- Count of night sessions (time_of_day = Night)
-- Presence of a back-to-back weekend (Sat long + Sun ≥ 10 km easy)
-- Quality sessions (count per week): do not rely on the cache `purpose` tag
-  alone — short reps (e.g. 6 × 200 m) are often tagged "Aerobic base". Also
-  count a running session as quality if its name contains a quality keyword
-  (e.g. "Nopeusperusta", "VO2max", "Kynnys", "Tempo", "Interval") or its
-  anaerobic TE is > 2.5. Do not count Wed/Fri strides or hill sprints.
-- Grey-zone sessions (only if the program states a polarization rule): count
-  running sessions that are not Interval / VO2max or Tempo / Threshold and have
-  `avg_hr` between the upper part of Z2 and the top of Z3 (from `Athlete Config`: roughly the top 3–5 bpm of `hr_zone_z2_range` up to the max of `hr_zone_z3_range`). Session avg HR is only a proxy for zone time — do not
-  use Garmin's own zone figures (see CLAUDE.md, Activity analysis rule — HR zones).
-- Calendar-month elevation total (only if the phase states a monthly D+ target)
-
-Also compute a 4-week rolling average of running distance (last 4 weeks vs.
-previous 4 weeks) to detect flat vs. progressing volume.
+The script only counts. Whether a column applies, and every red/yellow/green verdict, comes from
+Steps 4-5 and the current phase text. If a number looks wrong, check the cache row with the Read tool
+rather than recomputing the whole table.
 
 ---
 
@@ -232,7 +219,7 @@ no reference point.)
 - [If a scheduled milestone date has passed without a cache match, flag it]
 ```
 
-Keep the whole report under ~1 KB of output — it is a dashboard, not a
+(Chat mode below replaces this report on Telegram.) Keep the whole report under ~1 KB of output — it is a dashboard, not a
 coaching essay.
 
 ---
@@ -248,6 +235,31 @@ If the response is yes, hand off to the `training-plan` skill. Otherwise
 stop — this skill does not modify files or push to Garmin.
 
 ---
+
+## Chat mode (Telegram, headless runs)
+
+Used when the telegram-poll prompt sends you here. A chat reply is plain text, max ~250 words, and the
+chat run has no free shell, so do **not** follow Steps 1-6 by hand and do not paste the Step 6 report.
+Instead:
+
+1. Run `python3 scripts/program_health.py [weeks]` (one of three fixed shell commands) - the same
+   computation as Step 3 in every environment. Chat differs from an interactive run only in three ways:
+   no cache sync (the daily sync keeps it current; if the script's last line says the cache is stale,
+   keep that caveat and do not call Garmin just for this), a ~250-word reply instead of the Step 6
+   report, and no hand-offs.
+2. Read `training-program.md` (current phase block, Weekly Structure, Current Position, Open items,
+   named disruption windows, planned deload weeks) and `race-card.md` only if a race is decided.
+3. Apply Steps 2, 4 and 5 to the script's numbers: the **applicability rule** (score only areas the
+   current phase states; skip the rest in one line), deload weeks scored against their own volume, and
+   disruption windows (travel, illness) that suppress flags. The headline verdict is the worst applicable
+   flag.
+4. Reply in the athlete's language, in this order: headline verdict with phase/week (and time to race
+   or "no active race") · one line per applicable area with the number (🟢/🟡/🔴 + figure) · the
+   one or two biggest gaps · one recommended focus for the next 1-2 weeks. Collapse green areas into one
+   line. Quote numbers the script printed, never estimates. Apply the load and rest reasoning rule of
+   CLAUDE.md (numbers first; say whether a reason is program structure or physiology).
+5. End with the Step 7 question only if there are 🔴 items. Do not edit files, and do not build a plan in
+   the same reply; hand-off goes through the training-plan flow.
 
 ## Notes
 

@@ -111,7 +111,7 @@ phone and gets short replies. It runs on the NAS as the always-on `coach-telegra
 plugin / hourly scheduled task is retired. If no bot is configured, skip all Telegram steps silently. State
 is in `ATHLETE_DIR/telegram-last-update.txt` (offset) and `ATHLETE_DIR/telegram-conversation-log.md`
 (same-day memory); a test bot uses `telegram-test-*` files. The chat run has no free shell, only the fixed
-scripts `scripts/hr_zones.py` and `scripts/monthly_summary.py`, and cannot edit code; improvement ideas
+scripts `scripts/hr_zones.py`, `scripts/monthly_summary.py` and `scripts/program_health.py`, and cannot edit code; improvement ideas
 go to the development backlog (below). Design and
 operations: `docs/technical-notes.md` (Telegram, NAS runtime) and `deploy/nas/README.md`; athlete-specific
 setup in `ATHLETE_DIR/memory.md`.

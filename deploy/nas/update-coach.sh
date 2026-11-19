@@ -54,7 +54,7 @@ for f in compose.yaml mcp.json Dockerfile run-daily-sync.sh coach-chat.sh update
 done
 chmod +x run-daily-sync.sh coach-chat.sh update-coach.sh 2>/dev/null
 
-echo "$changed" | grep -Eq '^(scripts/(telegram_poll|resolve_athlete|hr_zones|monthly_summary)\.py)$' && restart=1
+echo "$changed" | grep -Eq '^(scripts/(telegram_poll|resolve_athlete|hr_zones|monthly_summary|program_health)\.py)$' && restart=1
 
 if [ "$rebuild" = 1 ]; then
   say "  rebuilding image"

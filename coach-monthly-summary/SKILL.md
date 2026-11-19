@@ -34,82 +34,43 @@ All file references below are relative to **ATHLETE_DIR**.
 
 ---
 
-## Step 1: Load all data sources
+## Step 1: Sync and check coverage
 
-**Use the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale Cowork mount).
+1. If the month extends beyond the cache frontier (e.g. the current month and the cache is a few days
+   old), apply the **Activity cache sync rule** in `CLAUDE.md` (run **activity-cache-updater** if new
+   activities exist). In the Telegram chat run skip the sync, as the prompt says.
+2. If the month is entirely before the cache start (before Jan 2025), tell the user the data is not
+   available for that period.
 
-1. Read `ATHLETE_DIR/activity-cache.csv` with the Read tool. For a single recent month, read the tail using `offset` near end-of-file with `limit: 80` — covers ~40 days. For older months or multi-month analysis, read the full file (default `limit: 2000` covers ~6 years of cache at current rates).
-2. Read `ATHLETE_DIR/events-log.md` — filter for entries whose date falls within the requested
-   month (or just before it, if an illness spans a month boundary). Note any SICK,
-   TRAVEL, ALCOHOL, TEST, MILESTONE, or other disruption events so you can reference them later.
-3. Check whether the requested month falls within the cached date range.
-4. If the month extends beyond the cache frontier (e.g., requesting the current month
-   and the cache is a few days old), run the **activity-cache-updater** skill first
-   to sync new activities, then continue.
-5. If the month is entirely before the cache start date (before Jan 2025), tell the
-   user that data is not available for that period.
+## Step 2: Compute the aggregates (script)
 
----
+Do **not** compute aggregates by hand. Run `python3 scripts/monthly_summary.py [YYYY-MM ...]` (from the
+workspace root, `python3` on Linux; no argument = current month, several months = oldest first). It is
+the single place where the aggregates are defined, in every environment (SSH, Cowork, Telegram), so its
+docstring is the authority for the exact definitions. For each month it prints:
+- **Volume:** sessions, running km (Trail + Road), all-modality km, hours, elevation, breakdown by modality
+- **Purpose mix:** sessions and km per purpose tag; **Modifiers:** Hill and Technical terrain counts
+- **Pace (running only):** aerobic base, long, tempo averages (total time / total distance) and fastest session (>= 2 km)
+- **Longest session** (name, distance, duration, elevation, purpose, date)
+- **Intensity:** average aerobic / anaerobic TE and training-effect label counts
+- **Subjective effort:** mean RPE, feel distribution, easy-day sessions with RPE >= 8
+- **Weekly pattern:** ISO-week running km, duration and sessions (`*` = week reaches outside the month)
+- **Time of day** and the **events-log** entries of the month (routine training lines omitted)
 
-## Step 2: Filter activities for the month
+The last line says how far the cache reaches; keep a staleness caveat in the answer if it says recent days
+may be missing.
 
-Extract all rows where `date` falls within the requested month. Group them for analysis.
+## Step 3: Check the events log before interpreting
 
----
-
-## Step 3: Compute aggregates
-
-Calculate these from the filtered rows:
-
-### Volume
-- Total sessions count
-- Total distance (sum of `distance_km`)
-- Total duration (sum of `duration_min`, express as Xh Xm)
-- Total elevation (sum of `elevation_m`)
-- Breakdown by modality (e.g., Trail running: X sessions, X km; Road running: X sessions, X km)
-
-### Purpose mix
-- Count sessions and total km for each purpose tag:
-  Recovery, Aerobic base, Long effort, Very long / Race sim,
-  Tempo / Threshold, Interval / VO2max, Strength, Cross-training
-
-### Modifiers
-- Count of Hill sessions (where `hill` = True)
-- Count of Technical terrain sessions (where `technical_terrain` = True)
-
-### Pace trends (running activities only — Trail running + Road running)
-- Average pace for Aerobic base sessions
-- Average pace for Long effort sessions
-- Average pace for Tempo / Threshold sessions (if any)
-- Fastest single session pace
-
-### Weekly pattern
-- Group activities by ISO week number
-- For each week: session count, total km, total duration
-
-### Longest session
-- The activity with the greatest distance_km
-- Include name, distance, duration, elevation, purpose tag
-
-### Intensity signals
-- Average aerobic_te across all sessions
-- Average anaerobic_te across all sessions
-- Count of sessions by training_effect_label (group and count)
-
-### Subjective effort (if cache has `rpe` and/or `feel` columns)
-- Mean RPE across all sessions with a value
-- Distribution: count of very_weak / weak / normal / strong / very_strong from `feel` column
-- Flag sessions where prescribed intent was easy but RPE ≥ 8 — a structural grey-zone signal
-
-### Time-of-day distribution
-- Count sessions by time_of_day tag (Morning / Daytime / Evening / Night)
-- Night sessions are specifically relevant if the race card specifies a night/late-evening start — weight them accordingly
+The script prints the month's events-log entries. Read `ATHLETE_DIR/events-log.md` with the Read tool only
+if an illness or trip spans a month boundary or the printed lines are not enough. Explain volume dips and
+anomalies with these facts rather than guesses.
 
 ---
 
 ## Step 4: Build the summary
 
-Output in this exact format. Keep it tight — the entire summary should be under 1.5 KB
+Use the script's numbers only (never recompute) and lay them out in this format. Keep it tight — the entire summary should be under 1.5 KB
 so that 6–12 months fit comfortably in a single context window.
 
 ```markdown
@@ -159,7 +120,7 @@ Wk1: X.X km (X sessions) | Wk2: X.X km (X) | Wk3: X.X km (X) | Wk4: X.X km (X) [
 When the user requests multiple months (e.g., "last 3 months", "Q1 summary",
 "how has my training progressed since October?"):
 
-1. Generate each month's summary individually using Steps 2–4.
+1. Run the script once with all months (Step 2) and lay out each month with Step 4.
 2. Present all monthly summaries in chronological order.
 3. After the last month, add a **Trend Analysis** section:
 
@@ -194,26 +155,27 @@ When the user requests multiple months (e.g., "last 3 months", "Q1 summary",
 
 ## Chat mode (Telegram, headless runs)
 
-Used when the telegram-poll prompt sends you here. A chat reply is plain text, max ~150 words, and the
-chat run has no free shell, so do **not** follow Steps 1–5 by hand. Instead:
+Used when the telegram-poll prompt sends you here. The computation is the same as in every other
+environment (Step 2, `scripts/monthly_summary.py`); chat differs only in three ways: no sync (the daily
+sync keeps the cache current), a plain-text reply of max ~250 words instead of the Step 4 template, and
+no free shell (the script is one of three fixed commands). Do not read the cache or compute anything
+yourself.
 
-1. Run `python3 scripts/monthly_summary.py [YYYY-MM ...]` (the only shell command available; no argument =
-   current month, several months = oldest first). It computes every aggregate of Step 3 from the cache and
-   prints the events-log entries of the month. It does not sync: if its last line says the cache is stale,
-   keep that caveat in the reply; do not call Garmin just for a summary.
-2. Write the reply from the script output, in the athlete's language, in this order and only with numbers
-   the script printed: running km, sessions and hours (add elevation) · longest session · purpose mix ·
-   aerobic/long pace · weekly running km as a short series · RPE/feel if present · one or two observations.
-   The first line says if the month is still in progress.
-3. Explain dips and spikes with the **Events log** lines first (illness, travel, tests), as in the
-   Notes below; never guess a cause the log does not support. Apply the load and rest reasoning rule of
-   CLAUDE.md: quote the numbers, and say whether a reason is program structure or physiology.
+1. Run the script as in Step 2. If its last line says the cache is stale, keep that caveat; do not call
+   Garmin just for a summary.
+2. Write the reply in the athlete's language, in this order and only with numbers the script printed:
+   running km, sessions and hours (add elevation) · longest session · purpose mix · aerobic/long pace ·
+   weekly running km as a short series · RPE/feel if present · one or two observations. The first line
+   says if the month is still in progress.
+3. Explain dips and spikes with the **Events log** lines first (illness, travel, tests); never guess a
+   cause the log does not support. Apply the load and rest reasoning rule of CLAUDE.md: quote the numbers,
+   and say whether a reason is program structure or physiology.
 4. Several months: one line per month (run km, hours, elevation, longest) and then one or two sentences
    of trend. Skip categories with zero entries.
 
 ## Notes
 
-- **No API calls**: This skill reads entirely from the local CSV cache (in chat mode `scripts/monthly_summary.py` does the reading and computing). If the cache
+- **No API calls**: This skill reads entirely from the local CSV cache (`scripts/monthly_summary.py` does the reading and computing in every environment). If the cache
   needs updating, delegate to the activity-cache-updater skill.
 - **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.75 → 6:45/km).
 - **Zero handling**: Omit any category with zero entries rather than showing "0".

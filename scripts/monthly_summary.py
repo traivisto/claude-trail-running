@@ -3,7 +3,7 @@
 monthly_summary.py
 ──────────────────
 Compact monthly training summary computed from the athlete's activity cache, for the Telegram chat run
-(which has no free shell and answers in ~150 words) and for exact numbers in any other session. It
+(which has no free shell and answers in ~250 words) and for exact numbers in any other session. It
 implements the Step 3 aggregates of coach-monthly-summary/SKILL.md; the skill's "Chat mode" section
 tells the bot how to turn this output into a short reply. No network access, nothing is written.
 

@@ -90,10 +90,11 @@ GARMIN_WRITE_TOOLS = ",".join("mcp__garmin__" + t for t in (
     "set_perceived_effort", "set_activity_feel", "set_activity_name", "set_activity_description"))
 ALLOWED_TOOLS = os.environ.get(
     "TELEGRAM_ALLOWED_TOOLS",
-    # The only Bash allowed are two fixed read-only scripts (no free shell): the HR-zone analysis and the
-    # monthly summary from the activity cache.
+    # The only Bash allowed are three fixed read-only scripts (no free shell): the HR-zone analysis, the
+    # monthly summary and the program-health aggregates from the activity cache.
     f"Read,Glob,Grep,Edit,Write,Bash(python3 scripts/hr_zones.py:*),"
     f"Bash(python3 scripts/monthly_summary.py:*),"
+    f"Bash(python3 scripts/program_health.py:*),"
     f"{GARMIN_READ_TOOLS},{GARMIN_WRITE_TOOLS},mcp__oura")
 MAX_TURNS = os.environ.get("TELEGRAM_MAX_TURNS", "60")  # a week of workouts is ~25 tool calls
 MCP_CONFIG = os.environ.get("COACH_MCP_CONFIG", "/etc/coach/mcp.json")

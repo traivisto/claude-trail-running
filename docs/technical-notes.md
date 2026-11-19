@@ -27,7 +27,8 @@ trigger phrases so skills fire in either language.
 - The chat run is deliberately limited (`ALLOWED_TOOLS` in the script): read-only Garmin tools, a few
   reversible Garmin writes (`[Coach]` workouts behind a two-step approval; RPE/feel/name/description of an
   activity), Oura, file tools, and **no free shell** — only the fixed scripts `scripts/hr_zones.py` (HR
-  zones of one run) and `scripts/monthly_summary.py` (monthly summary from the cache). The code is
+  zones of one run), `scripts/monthly_summary.py` (monthly summary from the cache) and
+  `scripts/program_health.py` (weekly aggregates for the program health check). The code is
   read-only for chat runs, so improvement ideas go to `<athlete>/coach-backlog.md` (after the athlete
   agrees) and are worked on in SSH sessions.
 - No health monitoring by design: Docker restarts a crash, a hang is noticed by hand (SSH; see

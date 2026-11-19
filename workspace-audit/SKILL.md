@@ -63,7 +63,7 @@ Verify that all non-personal files a new user needs are actually present in the 
 
 ```bash
 for f in scripts/update-dashboard.py scripts/update-dashboard.bat scripts/resolve_athlete.py scripts/new-athlete.py \
-         scripts/telegram_poll.py scripts/hr_zones.py scripts/monthly_summary.py scripts/prompts/telegram-poll.md \
+         scripts/telegram_poll.py scripts/hr_zones.py scripts/monthly_summary.py scripts/program_health.py scripts/prompts/telegram-poll.md \
          deploy/nas/README.md deploy/nas/Dockerfile deploy/nas/compose.yaml deploy/nas/mcp.json \
          deploy/nas/update-coach.sh deploy/nas/run-daily-sync.sh deploy/nas/coach-chat.sh \
          deploy/nas/claude.env.example deploy/nas/telegram.env.example deploy/nas/dotenv.example \
