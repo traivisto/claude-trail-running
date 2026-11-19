@@ -199,7 +199,7 @@ For each **running session** in the plan, create a structured workout and schedu
 ### Workout structure
 
 **Z1 and Z1–Z2 easy runs** are a single step — the whole run is the easy effort, no warmup/cooldown needed:
-1. Single step: time-based, HR target matching the zone (e.g. 100–124 bpm for Z1, 100–141 bpm for Z1–Z2)
+1. Single step: time-based, HR target matching the zone (Z1: from a low floor up to `hr_zone_z1_max`; Z1–Z2: up to the top of `hr_zone_z2_range`; both read from `Athlete Config`)
 
 **Tempo and threshold runs** have three time-based steps:
 1. Warmup: 10 min, no HR target (`workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target"`)

@@ -146,6 +146,7 @@ What goes to Garmin: running sessions + strength training, as `[Coach]`-prefixed
 | `training-plan` | Creates a training plan, saves as draft, pushes to Garmin on approval | Whenever you want a plan for the next X days |
 | `daily-readiness` | Recovery + readiness assessment with coaching recommendation | Every morning |
 | `activity-cache-updater` | Syncs new Garmin activities to local cache | Runs automatically when cache is stale; or ask "update my activity cache" |
+| `aerobic-efficiency-updater` | Fetches Garmin splits for new qualifying road runs into `aerobic-efficiency-splits.csv` for the dashboard's aerobic efficiency chart | Runs automatically after every cache sync; no action needed |
 | `coach-monthly-summary` | Training volume, intensity, patterns for a given month | Monthly reviews, multi-month trend |
 | `garmin-activity-tagger` | Classifies a single activity (purpose, modality, terrain) | When you want to understand what a specific session was |
 | `program-health-check` | Audits whether recent training is on track with the strategic program — red/yellow/green report on volume, long runs, strength, hills, back-to-backs, milestones | Before phase transitions, after disruptions, or any time you want a program status check |
@@ -164,7 +165,7 @@ Invoke any skill just by asking naturally — Claude recognises the intent and l
 All MCP servers are configured in:
 `%APPDATA%\Claude\claude_desktop_config.json`
 
-A ready-to-use template with all three connectors is included in this repo:
+A ready-to-use template with the Garmin and Oura connectors (Telegram runs on the NAS, see below) is included in this repo:
 **[`claude_desktop_config.example.json`](claude_desktop_config.example.json)**
 
 Copy it to `%APPDATA%\Claude\claude_desktop_config.json`, replace the placeholder token values, and restart Claude Desktop from the system tray.
@@ -190,21 +191,23 @@ Oura is fully optional. All coaching skills work without it — Garmin data is s
 1. Create a Personal Access Token at cloud.ouraring.com → Developer → Personal Access Tokens
 2. Add it to `claude_desktop_config.json` under the `oura` server's `env` block:
    ```json
-   "OURA_PERSONAL_ACCESS_TOKEN": "your_token_here"
+   "OURA_TOKEN": "your_token_here"
    ```
 3. Restart Claude Desktop.
 
 ### Telegram (optional)
-Provides: a remote interface to send coaching questions and log events from your phone, without opening Cowork.
+Provides: a remote interface to send coaching questions and log events from your phone, with short replies.
 
-Telegram is fully optional. To enable it:
+Telegram is fully optional; with no bot configured, all Telegram steps are skipped silently. It runs as the always-on `coach-telegram` container (`scripts/telegram_poll.py --loop`) in the NAS runtime described below. To enable it:
 
-1. Create a Telegram bot via @BotFather and copy the bot token
-2. Add it to `claude_desktop_config.json` under the `telegram-nemo` server's `env` block:
-   ```json
-   "TELEGRAM_BOT_TRAIL_COACH": "your_bot_token_here"
-   ```
-3. Restart Claude Desktop. A scheduled task polls for new messages hourly.
+1. Create a Telegram bot via @BotFather and copy the bot token.
+2. Put the token and your chat id in `secrets/telegram.env` on the NAS (template: `deploy/nas/telegram.env.example`). Never commit the real file.
+3. Start the `coach-telegram` service as described in [`deploy/nas/README.md`](deploy/nas/README.md).
+
+The earlier `telegram-nemo` Cowork plugin and its hourly scheduled task are retired.
+
+### NAS runtime (optional)
+Provides: an always-on headless coach on a Synology NAS — daily cache sync and dashboard rebuild, the Telegram bot, and interactive SSH coaching sessions. Everything is in [`deploy/nas/`](deploy/nas/); setup and operations are in [`deploy/nas/README.md`](deploy/nas/README.md). It is not needed for desktop use. Secrets (`secrets/*.env`) and the athlete folder choice (`.env`) stay on the NAS and are never committed.
 
 ---
 
@@ -229,6 +232,11 @@ Personal files (✅) live in `athletes/<id>/` and are git-ignored; shared files 
 | `scripts/update-dashboard.bat` | Windows shortcut to run the dashboard script. | ⬜ |
 | `scripts/new-athlete.py` | Creates `athletes/<id>/` from the template. | ⬜ |
 | `scripts/resolve_athlete.py` | Finds the athlete directory (`$COACH_ATHLETE_DIR` or the single `athletes/*`). | ⬜ |
+| `scripts/hr_zones.py` | HR zone distribution of one activity using your LTHR-based zones from `Athlete Config`. | ⬜ |
+| `scripts/monthly_summary.py` | Compact monthly summary computed from the activity cache (used by the Telegram chat run). | ⬜ |
+| `scripts/telegram_poll.py` | Telegram long-polling loop; prompt in `scripts/prompts/telegram-poll.md`. | ⬜ |
+| `deploy/nas/` | NAS runtime: Dockerfile, compose, scripts, MCP config and `*.example` env templates. See `deploy/nas/README.md`. | ⬜ |
+| `docs/tenant-ready-refactor-spec.md` | Design notes for the per-athlete directory split. | ⬜ |
 | `setup-template/` | Blank starting files for new athletes; copied by `scripts/new-athlete.py`. | ⬜ |
 
 ---

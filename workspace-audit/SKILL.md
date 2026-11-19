@@ -51,7 +51,8 @@ find "$WORKSPACE" -maxdepth 2 -not -path '*/docs/archive/*' -not -path '*/athlet
 ```
 
 **Flag rules:**
-- `__pycache__/` anywhere outside docs/archive → ⚠️ (harmless but clutters repo)
+- `__pycache__/` tracked by git (`git ls-files | grep pycache`) → ⚠️; present on disk but untracked
+  and covered by `.gitignore` → ℹ️ note only (local runtime artifact, never released)
 - `*.skill` files outside docs/archive → ⚠️ (old packaging format, superseded)
 - `*.plugin` in workspace root → ⚠️ (should be in docs/archive)
 - Files with no extension and a short random-looking name → ❌ (build artifact)
@@ -61,12 +62,22 @@ find "$WORKSPACE" -maxdepth 2 -not -path '*/docs/archive/*' -not -path '*/athlet
 Verify that all non-personal files a new user needs are actually present in the workspace root.
 
 ```bash
-for f in scripts/update-dashboard.py scripts/update-dashboard.bat scripts/resolve_athlete.py scripts/new-athlete.py docs/technical-notes.md README.md CLAUDE.md; do
+for f in scripts/update-dashboard.py scripts/update-dashboard.bat scripts/resolve_athlete.py scripts/new-athlete.py \
+         scripts/telegram_poll.py scripts/hr_zones.py scripts/monthly_summary.py scripts/prompts/telegram-poll.md \
+         deploy/nas/README.md deploy/nas/Dockerfile deploy/nas/compose.yaml deploy/nas/mcp.json \
+         deploy/nas/update-coach.sh deploy/nas/run-daily-sync.sh deploy/nas/coach-chat.sh \
+         deploy/nas/claude.env.example deploy/nas/telegram.env.example deploy/nas/dotenv.example \
+         docs/technical-notes.md README.md CLAUDE.md .gitignore claude_desktop_config.example.json; do
   [ -f "$WORKSPACE/$f" ] && echo "EXISTS: $f" || echo "MISSING: $f"
 done
 ```
 
 Any missing file → ❌
+
+Also compare `git ls-files` (excluding `athletes/`) against CLAUDE.md/README mentions: a tracked
+script or deploy file that no documentation mentions → ⚠️ (undocumented). Root helper files
+(`git-push.bat`, `claude_desktop_config.example.json`) must be free of personal paths, remotes and
+tokens (see 3a/3d).
 
 (The legacy `oura-fetch.py` was retired and archived; Oura is fetched via the MCP connector. Its absence is not an error.)
 
@@ -97,6 +108,7 @@ echo "=== personal files in root (must be none) ==="
 for f in athlete-profile.md race-card.md race-day-guide.md training-program.md current-plan.md \
          events-log.md memory.md activity-cache.csv aerobic-efficiency-splits.csv \
          training-dashboard.html telegram-last-update.txt telegram-conversation-log.md \
+         telegram-test-offset.txt telegram-test-conversation-log.md coach-backlog.md \
          oura.env oura-today.json arkisto; do
   [ -e "$WORKSPACE/$f" ] && echo "FOUND IN ROOT: $f"
 done
@@ -107,6 +119,28 @@ git -C "$WORKSPACE" ls-files | grep -E '(^|/)(athlete-profile|race-card|race-day
 
 Any hit → ❌. (Git history may still contain earlier commits of such files; flag that a history
 rewrite is needed before publishing the repo.)
+
+### 1e: Deploy files hold no secrets or athlete identity
+
+`deploy/nas/` is released code: it may contain only templates. Real tokens, chat IDs and athlete
+folder names belong in untracked files on the NAS (`secrets/*.env`, `.env`).
+
+```bash
+echo "=== tracked non-example env/secret files (must be none) ==="
+git -C "$WORKSPACE" ls-files | grep -E '(^|/)(\.env|secrets/|.*\.env)$' | grep -v '\.example$'
+echo "=== token-like values in deploy/ and root helpers ==="
+grep -rnE '[0-9]{8,10}:[A-Za-z0-9_-]{30,}|sk-ant-[A-Za-z0-9_-]+|oat01-|(TOKEN|CHAT_ID|API_KEY)=[^<$ ][^ ]{8,}' \
+  "$WORKSPACE/deploy" "$WORKSPACE/claude_desktop_config.example.json" "$WORKSPACE/git-push.bat" 2>/dev/null
+echo "=== hardcoded athlete ids / remotes ==="
+grep -rnE 'COACH_ATHLETE_(ID|DIR)=[^<$ ]|athletes/[a-z0-9_-]+/' "$WORKSPACE/deploy" 2>/dev/null | grep -v 'athletes/<id>/'
+grep -rn 'git remote\|github.com/[A-Za-z0-9_-]*/' "$WORKSPACE/git-push.bat" "$WORKSPACE/deploy" 2>/dev/null
+```
+
+- A tracked real env file, or a token-like value → ❌
+- A hardcoded athlete id/folder → ❌
+- Pinned third-party URLs in `mcp.json` / Dockerfile (public repos, e.g. `Taxuspt/garmin_mcp`) → fine
+- Home-directory paths inside the container config (e.g. `/home/coach/...` in `mcp.json`) are
+  container-internal; note them as ℹ️ but do not fail 3a for `deploy/`.
 
 ---
 
@@ -171,11 +205,16 @@ race date, geographic location tied to the athlete, or personal file paths.
 
 ```bash
 grep -rn 'C:\\Users\|/Users/\|/home/' "$WORKSPACE" \
-  --include='SKILL.md' --include='*.py' --include='*.bat' --include='technical-notes.md' \
-  --exclude-dir=athletes --exclude-dir=archive --exclude-dir=.git 2>/dev/null
+  --include='SKILL.md' --include='*.py' --include='*.bat' --include='*.sh' --include='*.md' \
+  --include='*.json' --include='*.yaml' --include='Dockerfile' \
+  --exclude-dir=athletes --exclude-dir=archive --exclude-dir=.git --exclude-dir=workspace-audit 2>/dev/null
 ```
 
-Any match → ❌
+(`workspace-audit/` is excluded because this file quotes the patterns it searches for.)
+
+Any match → ❌, except container-internal paths under `deploy/nas/` (the `coach` user's home inside
+the image, e.g. `/home/coach/.garminconnect`), which are ℹ️. Judge each hit on whether it names a
+real person's machine/home.
 
 ### 3b: Check CLAUDE.md for personal content
 
@@ -184,6 +223,20 @@ Read `CLAUDE.md` with the Read tool. Scan for:
 - Specific numeric HR values (pattern: `\d{3}\s*bpm` in a coaching context)
 - Specific race names
 - Personal file paths
+
+### 3b2: Check SKILL.md files for athlete-specific HR values
+
+```bash
+grep -nE '\b[0-9]{3}\s*(–|-)\s*[0-9]{3}\s*bpm|\b1[0-9]{2}\s*bpm|LTHR[^a-z]{1,5}1[0-9]{2}' \
+  "$WORKSPACE"/*/SKILL.md | grep -v '^[^:]*workspace-audit/'
+```
+
+Compare every hit with the `Athlete Config` block of the athlete directory (read it with the Read
+tool; never quote the values in the report). A value that equals one of that athlete's zone
+boundaries, LTHR, max HR or baselines → ❌ (personal biometrics in a generic file; replace with
+`<zone max from Athlete Config>` or an obviously fictional example). Documented Garmin %HRmax
+boundaries are public defaults but are derived from one athlete's max HR → ⚠️ if they equal that
+athlete's values.
 
 ### 3c: Check README.md for personal content
 
@@ -228,14 +281,10 @@ Check that no personal data files (csv, json with athlete data, personal logs) a
 present inside skill directories.
 
 ```bash
-find "$WORKSPACE" -path '*/docs/archive' -prune -o -path '*/athletes' -prune -o \
-  -path '*-updater' -prune -o \
-  -mindepth 2 -maxdepth 3 -type f \
-  -not -name 'SKILL.md' \
-  -not -path '*/evals/*' \
-  -not -path '*/setup-template/*' \
-  -not -path '*/.git/*' \
-  2>/dev/null | grep -E '/(activity-cache-updater|coach-monthly-summary|daily-readiness|garmin-activity-tagger|garmin-mcp|program-health-check|quick-lookup|training-plan|workspace-audit)/'
+for d in $(find "$WORKSPACE" -maxdepth 2 -name SKILL.md -not -path '*/athletes/*' -not -path '*/docs/*' \
+           -not -path '*/setup-template/*' -not -path '*/.git/*' -exec dirname {} \;); do
+  find "$d" -type f -not -name 'SKILL.md' -not -path '*/evals/*'
+done
 ```
 
 Any unexpected file inside a skill directory → ⚠️. Review manually to check for personal data.
@@ -264,8 +313,10 @@ will silently break when a new user names their folder differently or runs on an
 # Pattern: word-chars/filename.ext  where the prefix is not a variable
 grep -rn '[a-zA-Z0-9_-]\+/athlete-profile\|[a-zA-Z0-9_-]\+/activity-cache\|[a-zA-Z0-9_-]\+/race-card\|[a-zA-Z0-9_-]\+/events-log\|[a-zA-Z0-9_-]\+/current-plan' \
   "$WORKSPACE" --include='SKILL.md' 2>/dev/null | \
-  grep -v 'ATHLETE_DIR/' | grep -v 'setup-template/'
+  grep -v 'ATHLETE_DIR/' | grep -v 'setup-template/' | grep -v '^[^:]*workspace-audit/'
 ```
+
+Ignore prose matches such as "cache/events-log" (a phrase, not a path).
 
 Any match that is not prefixed with `ATHLETE_DIR/` or a bash variable → ❌. Also flag any remaining
 `find /sessions` in a SKILL.md → ❌ (Cowork-only discovery).
@@ -303,8 +354,10 @@ Already covered in Step 4 — no separate check needed.
 
 ### 6c: README skill table ↔ CLAUDE.md skill table consistency
 
-Read both files and extract their skill lists. Every skill in CLAUDE.md should also appear
-in README's Skills reference section, and vice versa. This catches the case where a new
+Read both files and extract their skill lists (README: the "Skills reference" table; CLAUDE.md:
+"Workspace skills" table). Every skill in CLAUDE.md should also appear
+in README's Skills reference section, and vice versa. Compare against the on-disk list from 4b too
+(helper skills such as `aerobic-efficiency-updater` are easy to forget). This catches the case where a new
 skill is added to CLAUDE.md but the README is not updated (or the reverse).
 
 - In CLAUDE.md but missing from README skills table → ⚠️
@@ -314,9 +367,15 @@ skill is added to CLAUDE.md but the README is not updated (or the reverse).
 ### 6d: Optional integrations documented
 
 Read README.md and verify it matches the **current architecture** (MCP-first):
-- Oura is documented as optional, fetched live via the `mcp__oura__` MCP connector (daveremy/oura-mcp). `oura-fetch.py` + `oura.env` were retired; any mention must say so (not present them as a working fallback).
-- Telegram is documented as optional via the `telegram-nemo` Cowork plugin (`mcp__telegram-nemo__` tools), with silent skip when unavailable. References to the old `telegram-trail-coach.json` HTTP setup → ⚠️ outdated.
+- Oura is documented as optional, fetched live via the `mcp__oura__` MCP connector (daveremy/oura-mcp). `oura-fetch.py` + `oura.env` were retired; any mention must say so (not present them as a working fallback). The env var name in README must match `claude_desktop_config.example.json` and `deploy/nas/mcp.json` (currently `OURA_TOKEN` in mcp.json) → mismatch ⚠️.
+- Telegram is documented as optional via the always-on `coach-telegram` container on the NAS
+  (`scripts/telegram_poll.py --loop`, config in `deploy/nas/`, secrets in `secrets/telegram.env`), with silent skip when no bot is configured. The retired `telegram-nemo` Cowork plugin (`mcp__telegram-nemo__`, hourly scheduled task) and the old `telegram-trail-coach.json` HTTP setup must not be presented as the current setup → ⚠️ outdated.
+- The NAS runtime (`deploy/nas/README.md`, `update-coach.sh`, daily sync, chat wrapper) is mentioned in README or CLAUDE.md with a pointer to `deploy/nas/README.md` → missing ⚠️.
+- Every script and deploy file listed in 1b appears in the README "Key files" table or is covered by a documented pointer → missing ⚠️.
 - Neither integration is presented as required.
+
+Cross-check `CLAUDE.md` statements against `docs/technical-notes.md` and `deploy/nas/README.md`
+(same architecture wording, same file names). Contradiction → ⚠️.
 
 ---
 

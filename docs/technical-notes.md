@@ -91,8 +91,8 @@ Corrected in `garmin-mcp/SKILL.md`; summary:
 
 ## HR zones — API inconsistency
 Coaching analysis uses LTHR-based zone boundaries from the `Athlete Config` block in `athlete-profile.md`.
-Garmin Connect, the API (`get_activity_hr_in_timezones`) and the workout editor use %HRmax boundaries
-(88/106/123/141/157) and ignore LTHR settings. Never use Garmin's zone numbers or time-in-zone; compute
+Garmin Connect, the API (`get_activity_hr_in_timezones`) and the workout editor use %HRmax-based boundaries
+and ignore LTHR settings. Never use Garmin's zone numbers or time-in-zone; compute
 the distribution from per-second FIT HR (see `CLAUDE.md` "Activity analysis rule — HR zones"). Workout
 creation rules (absolute bpm, `[Coach]` prefix) are also in `CLAUDE.md`.
 

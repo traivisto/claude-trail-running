@@ -97,7 +97,7 @@ each week compute:
   anaerobic TE is > 2.5. Do not count Wed/Fri strides or hill sprints.
 - Grey-zone sessions (only if the program states a polarization rule): count
   running sessions that are not Interval / VO2max or Tempo / Threshold and have
-  `avg_hr` 138–148 bpm. Session avg HR is only a proxy for zone time — do not
+  `avg_hr` between the upper part of Z2 and the top of Z3 (from `Athlete Config`: roughly the top 3–5 bpm of `hr_zone_z2_range` up to the max of `hr_zone_z3_range`). Session avg HR is only a proxy for zone time — do not
   use Garmin's own zone figures (see CLAUDE.md, Activity analysis rule — HR zones).
 - Calendar-month elevation total (only if the phase states a monthly D+ target)
 

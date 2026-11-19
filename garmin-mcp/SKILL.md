@@ -330,7 +330,7 @@ Call in parallel (this order follows the daily-readiness skill):
 |---|---------|----------|
 | 1 | `activity_id` must be `number`, not `string` | Always convert: `int(activity_id)` or `Number(activityId)` |
 | 2 | `get_sleep_data` returns ~200 KB of time-series data | Always use `get_sleep_summary` (~350 B) instead |
-| 3 | Garmin HR zones in the API use %HRmax boundaries (88/106/123/141/157 bpm) | Use absolute bpm values from athlete-profile.md |
+| 3 | Garmin HR zones in the API use %HRmax-based boundaries (not LTHR-based) | Use absolute bpm values from athlete-profile.md |
 | 4 | `get_activity_hr_in_timezones` uses the same %HRmax boundaries | Calculate your own distribution with LTHR boundaries from `get_activity_splits` data |
 | 5 | Elevation data is missing from `get_activities_by_date` | Always fetch `get_activity_splits` per activity to calculate elevation |
 | 6 | `training_balance_feedback: AEROBIC_HIGH_SHORTAGE` = Z3–Z4 deficit | A long easy run won't fix this — a tempo/threshold/interval session is needed |
