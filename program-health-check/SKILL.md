@@ -82,8 +82,8 @@ the aggregates are defined, in every environment (interactive session, Telegram)
 authority for the exact definitions. Per ISO week it prints: running km, running minutes (RunMin), minutes of Trail running (Trail), all-modality hours, D+, longest run
 (km/min), strength sessions, hill sessions (>= 200 m), technical-terrain sessions, night sessions, quality
 sessions (purpose, name keyword or anaerobic TE > 2.5), grey-zone sessions (avg-HR proxy from `Athlete
-Config`), back-to-back weekends (Sat long run + Sun >= 10 km); plus the 4-week volume trend (average run
-km per non-deload week, 4 vs the previous 4), the dates of quality and strength sessions, D+ per calendar
+Config`), back-to-back weekends (Sat long run + Sun >= 10 km); plus the 4-week volume trend (average running
+minutes, with km alongside, per non-deload week, 4 vs the previous 4), the dates of quality and strength sessions, D+ per calendar
 month, night sessions in 8 weeks and the last 60 days of the events log. Planned deload weeks are marked
 `D` (read from `training-program.md`) and are excluded from the trend.
 

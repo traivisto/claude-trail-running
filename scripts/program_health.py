@@ -27,7 +27,7 @@ Definitions (same as the skill):
     avg HR from (hr_zone_z2 max - 4) up to hr_zone_z3 max (proxy, avg HR only).
   * B2B = Saturday run >= long_run_threshold_km and Sunday run >= 10 km in the same weekend.
   * Planned deload weeks are read from lines containing "deload" and "Week N (d.m.-d.m.)" (start month optional) in
-    training-program.md and marked "D" in the table. The volume trend compares the average run km per
+    training-program.md and marked "D" in the table. The volume trend compares the average running minutes (km shown alongside) per
     non-deload week of the last 4 completed weeks with the 4 before them (current week excluded).
 """
 
@@ -190,13 +190,14 @@ def main(argv) -> int:
               f"{'yes' if sat >= long_km and sun >= 10 else 'no':>3}  {len(W):3d}")
 
     wk_km = lambda mon: sum(f(r["distance_km"]) for r in by_week.get(mon, []) if r["modality"] in RUN)
+    wk_min = lambda mon: sum(f(r["duration_min"]) for r in by_week.get(mon, []) if r["modality"] in RUN)
     done = [this_mon - timedelta(weeks=i) for i in range(8, 0, -1)]  # 8 completed weeks, oldest first
-    avg = lambda ws: sum(wk_km(m) for m in ws) / len(ws) if ws else 0.0
+    avg = lambda ws, fn: sum(fn(m) for m in ws) / len(ws) if ws else 0.0
     l4, p4 = [m for m in done[4:] if m not in deloads], [m for m in done[:4] if m not in deloads]
-    a_l4, a_p4 = avg(l4), avg(p4)
-    pct = (a_l4 / a_p4 - 1) * 100 if a_p4 else 0.0
-    out.append(f"Run km per non-deload week: last 4 completed weeks {a_l4:.1f} ({len(l4)} weeks) vs previous 4 "
-               f"{a_p4:.1f} ({len(p4)} weeks), {pct:+.0f} %")
+    pct = lambda fn: (avg(l4, fn) / avg(p4, fn) - 1) * 100 if avg(p4, fn) else 0.0
+    out.append(f"Running minutes per non-deload week: last 4 completed weeks {avg(l4, wk_min):.0f} ({len(l4)} weeks) vs "
+               f"previous 4 {avg(p4, wk_min):.0f} ({len(p4)} weeks), {pct(wk_min):+.0f} % "
+               f"(km: {avg(l4, wk_km):.1f} vs {avg(p4, wk_km):.1f}, {pct(wk_km):+.0f} %)")
 
     try:
         zs = load_zone_seconds(athlete)
