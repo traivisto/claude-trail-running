@@ -106,15 +106,15 @@ Budget the week in **running minutes per HR zone** (plus D+), not in km. Time in
 - km are only a rough estimate for road runs, derived from the athlete's recent road pace, and secondary.
 - When returning from disruption, target the lower end. Recovery/deload weeks: use the program's stated deload range; if it states none, ~75–80% of the normal-week running-minute target (the ratio the program itself uses).
 - **Flexibility rules from the program apply:** when the athlete is ill or travelling, plan the program's **minimum week** (one quality, one strength, one long run); after illness easy only and **no catching up** missed quality; the protected sessions (Tuesday-style quality, weekend long run) are placed first.
-- **Tests:** if a test from the program's test calendar falls in the plan's range, schedule it as written (venue, protocol, e.g. indoor lap counting when there is no GPS) and do not add a hard session next to it. Apply the program's **test-week rule**: by default a maximal test replaces that week's quality session, and the strength spacing (e.g. 72 h before) applies only to the tests for which the program states it. If the program is silent, use those defaults and say so in the plan. A baseline test missed in the previous week is done now or dropped, as the program says.
+- **Tests:** if a test from the program's test calendar falls in the plan's range, schedule it as written (venue, protocol, e.g. indoor lap counting when there is no GPS) and do not add a hard session next to it. Apply the program's **test-week rule**: by default a maximal test replaces that week's quality session, and strength is always placed sensibly, never immediately before a test (general rule); a longer spacing (e.g. 72 h) applies only to the tests for which the program states it. If the program is silent, use those defaults and say so in the plan. A baseline test missed in the previous week is done now or dropped, as the program says.
 
 ### Day-by-day placement
 
-Fit sessions to the requested date range. Prioritise:
+Fit sessions to the requested date range. The program's Weekly Structure is a **default pattern, not a fixed weekday schedule**: the athlete's calendar changes and no weekday (Monday, Friday, ...) is a sacred rest or session day. Place sessions and rest days by load and by what comes next (recovery around the quality session, the long run, tests), keeping the constraints below; ask about calendar commitments (travel, work, events) if the plan depends on them. Longer sessions are easiest at the weekend, which is a preference, not a rule. Prioritise:
 - Long run on a day where the next day can be easy or rest
 - Strength on easy-run days (after the run) or standalone rest days
 - Back-to-back long weekends only when the current block of the program states them
-- Rest days are real days — include at least one per 7-day window
+- Rest days are real days — include at least the number the program states (minimum one per 7-day window), on whichever days the load and the next sessions call for; say whether a rest day is program structure or a physiological need
 
 **Hard constraints — check these before finalising any plan:**
 - **Never schedule strength on two consecutive days.** Minimum 48 h between strength sessions. If 2×/week, place on non-adjacent days (e.g. Tue + Thu).
