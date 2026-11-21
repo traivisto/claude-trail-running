@@ -183,12 +183,15 @@ find "$WORKSPACE/setup-template" -type f | sort
 ```
 
 Expected contents: `athlete-profile.md`, `race-card.md`, `events-log.md`, `memory.md`,
-`training-dashboard.html`. Any other file → ❌ (possible personal data leak).
+`training-program.md`, `training-dashboard.html`. Any other file → ❌ (possible personal data leak).
 
 For `training-dashboard.html`, check via bash:
 ```bash
 grep -c 'rawSessions = \[\]' "$WORKSPACE/setup-template/training-dashboard.html" && echo "Data arrays empty ✅" || echo "Data arrays NOT empty ❌"
 grep 'YOUR NAME' "$WORKSPACE/setup-template/training-dashboard.html" && echo "Placeholders present ✅" || echo "Placeholders MISSING ❌"
+# every pre-aggregated data array must be empty too (a populated one leaks training history)
+grep -nE '^const (wkElev|roll[A-Za-z]+|month[A-Za-z]+|purposeDs[A-Za-z]+|calData|allActivities)\s*=\s*\[.+\]' "$WORKSPACE/setup-template/training-dashboard.html" && echo "Data arrays NOT empty ❌" || echo "All data arrays empty ✅"
+grep -A3 'const modData' "$WORKSPACE/setup-template/training-dashboard.html" | grep -E '[0-9]' && echo "modData NOT empty ❌"
 ```
 
 ---
@@ -327,7 +330,7 @@ Any match that is not prefixed with `ATHLETE_DIR/` or a bash variable → ❌. A
 ```bash
 # Each workflow SKILL.md should contain the ATHLETE_DIR resolution step and no Cowork-only find
 for skill_dir in activity-cache-updater aerobic-efficiency-updater coach-monthly-summary daily-readiness \
-                 garmin-activity-tagger program-health-check quick-lookup training-plan; do
+                 garmin-activity-tagger program-health-check quick-lookup training-plan training-program; do
   f="$WORKSPACE/$skill_dir/SKILL.md"
   if grep -q 'Resolve \*\*ATHLETE_DIR\*\*' "$f" 2>/dev/null && ! grep -q 'find /sessions' "$f"; then
     echo "✅ $skill_dir — ATHLETE_DIR resolution present"

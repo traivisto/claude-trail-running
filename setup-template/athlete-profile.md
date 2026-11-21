@@ -3,6 +3,37 @@
 
 ---
 
+## Athlete Config
+> Machine-readable thresholds used by coaching skills. Skills read values from this block rather than hardcoding them.
+> **Units note:** all `*_pace_min_km` values are **decimal minutes per km** (5.50 = 5:30/km), not M.SS.
+
+```
+name:                   [YOUR NAME]
+max_hr_bpm:             [bpm]
+lthr_bpm:               [bpm]
+resting_hr_bpm_range:   [X–Y]
+hrv_baseline_ms_range:  [X–Y]
+hr_zone_z1_max:         [bpm]
+hr_zone_z2_range:       [X–Y]
+hr_zone_z3_range:       [X–Y]
+hr_zone_z4_range:       [X–Y]
+hr_zone_z5_range:       [X–Y]
+aerobic_threshold_pace_min_km:    [decimal min/km]
+anaerobic_threshold_pace_min_km:  [decimal min/km]
+aerobic_baseline_pace_min_km:     [decimal min/km, easy flat pace]
+long_effort_baseline_pace_min_km: [decimal min/km]
+hill_modifier_threshold_m_per_km: 40
+technical_terrain_multiplier:     1.25
+vo2max_ml_kg_min:       [value]
+typical_weekly_km:      [km]
+long_run_threshold_km:  15
+long_run_threshold_min: 90
+very_long_threshold_km: 30
+very_long_threshold_min: 180
+```
+
+---
+
 ## Identity
 
 - **Name:** [Full name]

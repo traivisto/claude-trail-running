@@ -67,12 +67,11 @@ Full steps in `deploy/nas/README.md`. In short:
   `get_rhr_day`, `get_training_readiness`, `get_training_status`.
 
 ### Quirk — `get_activity_fit_data(include_records=true)` on very long activities (2026-11-20)
-For a 56 min run the result is ~1 MB of JSON (~300 B per 1 s record, saved to a file). For a ~18 h race
-(NUTS Ylläs Pallas 100 km) it would be ~20 MB; the call failed three times with "Connection closed" and
+For a 56 min run the result is ~1 MB of JSON (~300 B per 1 s record, saved to a file). For a ~18 h ultra race it would be ~20 MB; the call failed three times with "Connection closed" and
 the first failure took the Garmin MCP server down until `/mcp` reconnected it. Use
-`download_activity_file(activity_id, format="fit", output_dir=<own empty dir>)` instead (4.9 MB for the
-race, written to disk, no large response) and `python3 scripts/hr_histogram.py add-fit <file> <id>`
-(stdlib FIT decoder; validated against the race: avg HR 129.4 vs 129, max 150 vs 150, duration −0.6 %).
+`download_activity_file(activity_id, format="fit", output_dir=<own empty dir>)` instead (~5 MB for an 18 h race,
+written to disk, no large response) and `python3 scripts/hr_histogram.py add-fit <file> <id>`
+(stdlib FIT decoder; validated against Garmin's own summary: avg HR, max HR and duration agree within 1 %).
 Short activities keep using `get_activity_fit_data` + `hr_histogram.py add`.
 
 ### Quirk — `recovery_time_hours` after ultra distances

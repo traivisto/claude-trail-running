@@ -187,7 +187,7 @@ omitted as not-applicable do not count against the verdict.
 
 **Last 8 weeks at a glance**
 Week of   RunMin  Km    Hrs   Elev    Long    Str  Qual  Hill≥200m  Grey  Night  B2B
-Apr 13    290     47    6:45  610     18.2    2    1     1          0     0      yes
+[date]    [min]   [km]  [h:mm] [m]   [km]    [N]  [N]   [N]        [N]   [N]    [yes/no]
 [...]
 
 (Drop the Qual/Grey/Night/B2B columns, the Tech column the script also prints,

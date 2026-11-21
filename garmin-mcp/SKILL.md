@@ -161,6 +161,12 @@ params: { date: "YYYY-MM-DD" }
 ```
 ⚠️ Returns ~35 KB of time-series data. Use only if stress level is relevant — otherwise skip.
 
+### `get_weigh_ins`
+```
+params: { start_date: "YYYY-MM-DD", end_date: "YYYY-MM-DD" }
+```
+Returns `{date_range, measurement_count, days_with_data, measurements: [...], average_weight_kg}`. Each measurement: `date`, `weight_kg`, `bmi`, `body_fat_percent`, `body_water_percent`, `muscle_mass_grams`, `source_type` (e.g. `INDEX_SCALE`). Use the **monthly average**, not single readings (daily values vary ±1 kg from fluid and food); body-fat and muscle-mass values from a smart scale only follow weight and are not interpreted. A multi-month range is fine (~30 rows for 6 months).
+
 ---
 
 ## Domain 2: Activity fetching and analysis

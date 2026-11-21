@@ -180,7 +180,7 @@ yourself.
 - **No API calls** for the training aggregates: they come entirely from the local CSV cache (`scripts/monthly_summary.py` does the reading and computing in every environment). If the cache
   needs updating, delegate to the activity-cache-updater skill. The one exception is the optional **Body weight** line (interactive sessions only): a single `get_weigh_ins` call for the month range. Use the monthly average, not single readings (daily values vary ±1 kg from fluid and food); body-fat and muscle-mass figures from the scale only follow weight and are not interpreted. Never in chat mode.
 - **Pace vs trail:** never compare or average trail paces, and never mix trail and road in one pace figure. For trail say time (and avg HR, ascent) and, when the script prints them, zone minutes (from `hr-histograms.csv`; only runs with a histogram are counted, shown as n/N).
-- **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.75 → 6:45/km).
+- **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.50 → 6:30/km).
 - **Zero handling**: Omit any category with zero entries rather than showing "0".
 - **Rounding**: Keep distances to 1 decimal, durations to whole minutes, elevation to whole meters.
 - **Athlete context**: Read the race card and athlete profile to understand what matters most for this athlete. Weight coaching observations accordingly — e.g. night sessions matter more if the race starts at night, hill work matters more on mountain courses, long efforts matter more at ultra distances, technical terrain matters more on rocky/rooty courses.

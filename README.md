@@ -34,6 +34,7 @@ This copies `setup-template/` to `athletes/<id>/`. All file names below are insi
 | `race-card.md` | Your target race details |
 | `events-log.md` | Log for illness, travel, disruptions |
 | `memory.md` | Athlete-specific notes and coaching continuity |
+| `training-program.md` | Multi-week training program (goals, blocks, volume, tests); create it with the `training-program` skill |
 | `training-dashboard.html` | Blank dashboard — populated by `scripts/update-dashboard.py` |
 
 **Step 4 — Fill in your athlete profile**
@@ -151,6 +152,7 @@ What goes to Garmin: running sessions + strength training, as `[Coach]`-prefixed
 | `aerobic-efficiency-updater` | Fetches Garmin splits for new qualifying road runs into `aerobic-efficiency-splits.csv` for the dashboard's aerobic efficiency chart | Runs automatically after every cache sync; no action needed |
 | `coach-monthly-summary` | Training volume, intensity, patterns for a given month | Monthly reviews, multi-month trend |
 | `garmin-activity-tagger` | Classifies a single activity (purpose, modality, terrain) | When you want to understand what a specific session was |
+| `training-program` | Creates, revises or reviews the multi-week training program (`training-program.md`): goals, blocks, volume targets, tests, checkpoint | When starting a program or when it needs revising; not for week plans or status reports |
 | `program-health-check` | Audits whether recent training is on track with the strategic program — red/yellow/green report on volume, long runs, strength, hills, back-to-backs, milestones | Before phase transitions, after disruptions, or any time you want a program status check |
 | `quick-lookup` | Fast factual lookups from local files — km totals, race cutoffs, nutrition timing, drop bag, events log, current phase. No API calls. | Any simple data retrieval question |
 | `garmin-mcp` *(reference)* | Documents Garmin MCP tool selection, parameter formats, response shapes, and known quirks. Claude reads this before making any Garmin API calls — not invoked directly by the user. | — |
@@ -232,9 +234,10 @@ Personal files (✅) live in `athletes/<id>/` and are git-ignored; shared files 
 | `docs/technical-notes.md` | Connector setup, Garmin/Oura quirks, workout-structure rules. | ⬜ |
 | `scripts/update-dashboard.py` | Regenerates the dashboard from the cache. No external dependencies. | ⬜ |
 | `scripts/update-dashboard.bat` | Windows shortcut to run the dashboard script. | ⬜ |
+| `git-push.bat` | Legacy Windows helper (add, commit, push). Not used on the NAS, where development happens in the `coach-edit` container. | ⬜ |
 | `scripts/new-athlete.py` | Creates `athletes/<id>/` from the template. | ⬜ |
 | `scripts/resolve_athlete.py` | Finds the athlete directory (`$COACH_ATHLETE_DIR` or the single `athletes/*`). | ⬜ |
-| `scripts/hr_zones.py` | HR zone distribution of one activity using your LTHR-based zones from `Athlete Config`. | ⬜ |
+| `scripts/hr_zones.py` | HR zone distribution of one activity using your LTHR-based zones from `Athlete Config` (used by the Telegram chat run). | ⬜ |
 | `scripts/monthly_summary.py` | Compact monthly summary computed from the activity cache (used by the Telegram chat run). | ⬜ |
 | `scripts/hr_histogram.py` | Time-in-HR-zone cache: per-run HR histogram in `hr-histograms.csv`, zones computed from your `Athlete Config` (used by the activity sync, monthly summary and program health). | ⬜ |
 | `scripts/program_health.py` | Weekly aggregates for the program health check from the activity cache (used by the Telegram chat run). | ⬜ |

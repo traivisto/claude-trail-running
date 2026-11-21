@@ -98,7 +98,7 @@ Fixed constants (not athlete-specific):
 | Night window | 22:00–05:00 | |
 | Elevation pace penalty | **0.06 min/km per m/km elev** | Standard trail running rule of thumb |
 
-If the Athlete Config block is missing a required field, fall back to a reasonable default and note it in the output ("baseline pace defaulted to 6.75 min/km — set `aerobic_baseline_pace_min_km` in athlete-profile.md to override").
+If the Athlete Config block is missing a required field, fall back to a reasonable default and note it in the output ("baseline pace defaulted to 6.50 min/km — set `aerobic_baseline_pace_min_km` in athlete-profile.md to override").
 
 ---
 
