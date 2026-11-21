@@ -174,13 +174,13 @@ Show the plan and explicitly wait for approval. Say something like:
 
 ```
 📋 Garmin structure:
-  • Warmup — lap button
+  • Warmup — lap button (guide: ~[X] min)
   • × [N]: [X] min [zone] ([bpm]–[bpm] bpm) — time-based
   • Recovery — lap button
-  • Cooldown — lap button
+  • Cooldown — lap button (guide: ~[X] min)
 ```
 
-For simple aerobic runs, no preview is needed — the structure is straightforward (warmup / main / cooldown, all time-based).
+For every run whose watch structure is not a plain single step (mixed zones, strides, anything with a lap button), also show the structure preview and go through it with the athlete **before** anything is saved to the watch. Simple single-zone runs need no preview.
 
 Do not touch Garmin until the user confirms. If changes are requested, edit the file and show the updated plan. Repeat until approved.
 
@@ -207,13 +207,20 @@ For each **running session** in the plan, create a structured workout and schedu
 
 ### Workout structure
 
-**Z1 and Z1–Z2 easy runs** are a single step — the whole run is the easy effort, no warmup/cooldown needed:
-1. Single step: time-based, HR target matching the zone (Z1: from a low floor up to `hr_zone_z1_max`; Z1–Z2: up to the top of `hr_zone_z2_range`; both read from `Athlete Config`)
+**Guiding principle: the watch structure is a practical aid, not a transcript of the plan.** Keep it as simple as the session allows: a run is normally 1–3 phases. Whatever the plan text says, the watch's total timed duration must equal the duration stated for the session (Garmin flags a workout as too long when steps add up beyond it).
 
-**Tempo and threshold runs** have three time-based steps:
-1. Warmup: 10 min, no HR target (`workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target"`)
+**Z1 and Z1–Z2 easy runs:** a single step when the whole run is in one zone (Z1: from a low floor up to `hr_zone_z1_max`; Z1–Z2: up to the top of `hr_zone_z2_range`; both from `Athlete Config`, no warmup/cooldown). When the plan splits the run by zone (e.g. 35 min Z1 + 15 min Z2), make one step per zone block with its own absolute bpm target (2–3 steps in total), with the durations summing to the planned total.
+
+**Short efforts are not put in the watch.** Strides, hill sprints and any other effort under ~2 min (e.g. 4–6 × 20 s) are written in the plan text only and done by feel; do not program them as repeat groups. Decide, when building the session, whether they are inside or on top of the stated duration and say so in the plan (e.g. "50 min Z1–Z2 + 4–6 × 20 s strides at the end, not in the watch"). The watch then shows the main run only, so the total stays equal to the plan's stated duration.
+
+**Longer efforts (≥ ~2 min), which are hard to time in your head** (e.g. 2–10 min tempo or threshold blocks), are watch steps: time-based with an HR target.
+
+**Hill repeats:** the athlete starts from the foot of the hill, so do not tie the pre-hill phase to distance or time. Warm-up and the walk/jog to the hill end with the lap button, and the climb is the timed step that starts after that press (see the structure below).
+
+**Tempo and threshold runs** have three steps (decided 21.11.2026: the athlete starts the effort where the spot suits, e.g. after crossing a busy road onto a clear stretch, so warm-up and cool-down end with the lap button):
+1. Warmup: `conditionType: PRESS_LAP`, no HR target (`workoutTargetTypeId: 1, workoutTargetTypeKey: "no.target"`). The target time (normally ~10 min) is a guide: write it in the plan and in the step description, not as a time limit.
 2. Main effort: time-based, with HR target
-3. Cooldown: 10 min, no HR target
+3. Cooldown: `conditionType: PRESS_LAP`, no HR target, target time ~10 min as a guide
 
 **Hill/interval quality sessions** (mäkitoistot, track intervals) use lap-button steps for warmup, recovery, and cooldown — only the active effort is time-based. This is because terrain makes fixed durations impractical for non-effort phases. Structure:
 1. Warmup: `conditionType: PRESS_LAP`, no HR target
@@ -221,6 +228,8 @@ For each **running session** in the plan, create a structured workout and schedu
    a. Active effort: time-based (e.g. 4 min), Z4 HR target
    b. Recovery: `conditionType: PRESS_LAP`, no HR target
 3. Cooldown: `conditionType: PRESS_LAP`, no HR target
+
+**Review before pushing:** the session list in the draft already states each session's structure (phases, zones, which efforts are only in the text); the athlete approves it before Step 7. If the athlete corrects the structure, follow the correction and use it for similar sessions later.
 
 ### HR targets — always absolute bpm, never zone numbers
 Garmin's built-in zone numbers use %HRmax and do not match LTHR-based zones. Always use `targetValueOne` / `targetValueTwo` with `workoutTargetTypeId: 4`. Read the actual bpm boundaries from `athlete-profile.md` Athlete Config (`hr_zone_z1_max`, `hr_zone_z2_range`, etc.).

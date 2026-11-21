@@ -128,13 +128,22 @@ average pace/HR, which includes warm-up and cool-down and is misleading. Analyse
 `get_activity_typed_splits` / lap data separately.
 
 ## Garmin workout structure rules
-- **Z1 and Z1–Z2 runs:** a single workout step (duration + HR range); no separate warm-up/cool-down.
-  Structure: 1 × [X min, ≤ Z1 ceiling or Z1–Z2 range].
-- **Quality sessions** (tempo, hill repeats, intervals): warm-up and cool-down are separate steps.
+- **Principle (decided 21.11.2026):** keep the watch structure simple (normally 1–3 phases) and make its total
+  timed duration equal the duration stated in the plan; the plan text, not the watch, carries the detail.
+  Background: a 50 min Z1–Z2 run was one watch step, the athlete added 4–6 × 20 s strides on top and Garmin
+  flagged the workout as too long.
+- **Z1 and Z1–Z2 runs:** a single workout step (duration + HR range) when the whole run is in one zone; no
+  separate warm-up/cool-down. Zone-split runs (35 min Z1 + 15 min Z2): one step per zone block, own absolute bpm.
+- **Short efforts (strides, sprints, anything under ~2 min):** not in the watch; described in the plan text only,
+  stating whether they are inside or on top of the stated duration. Efforts of ~2 min or more are watch steps.
+- **Quality sessions** (tempo, hill repeats, intervals): warm-up and cool-down are separate steps. They end
+  with the lap button (`PRESS_LAP`), with the target time (~10 min) only as a guide in the plan and step
+  description: the athlete starts the effort where the spot suits (clear stretch, after a busy crossing).
 - **Hill and terrain-based interval sessions:** warm-up, recoveries between climbs and cool-down must
   **not** be time-bound — end them with the lap button (`conditionType: PRESS_LAP`). Only the quality
   interval itself is time-bound (e.g. 4 min climb in Z4). Reason: on trails, time limits for descents and
-  recoveries cannot be honoured. Example 4 × 4 min Z4: warm-up PRESS_LAP; × 4 [4 min Z4; recovery
+  recoveries cannot be honoured. The athlete starts the climb from the foot of the hill, so the phase before it
+  is not bound to time or distance: it ends with the lap button and the timed climb starts after that press. Example 4 × 4 min Z4: warm-up PRESS_LAP; × 4 [4 min Z4; recovery
   PRESS_LAP]; cool-down PRESS_LAP.
 - **Garmin lap-button quirk:** the lap button in a Garmin workout **always** advances to the next step,
   whether the step's end condition is TIME or PRESS_LAP. Setting a GPS anchor via lap press mid-workout
