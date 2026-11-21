@@ -154,11 +154,12 @@ rather than real athlete or race data.
 - `setup-template/race-card.md`
 - `setup-template/events-log.md`
 - `setup-template/memory.md`
+- `setup-template/training-program.md`
 - `setup-template/training-dashboard.html`
 
 For each file, check existence:
 ```bash
-for f in athlete-profile.md race-card.md events-log.md memory.md training-dashboard.html; do
+for f in athlete-profile.md race-card.md events-log.md memory.md training-program.md training-dashboard.html; do
   [ -f "$WORKSPACE/setup-template/$f" ] && echo "EXISTS: $f" || echo "MISSING: $f"
 done
 ```

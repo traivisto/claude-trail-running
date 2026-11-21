@@ -66,7 +66,7 @@ If the user confirms, proceed — Step 6a will automatically clean up the old [C
 
 Read these in parallel **using the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale mount):
 
-1. `training-program.md` — current phase, active goals, session priority list, volume range
+1. `training-program.md` — current phase, active goals, session priority list, volume range, and the program's rules: **flexibility rules** (protected sessions, minimum week, illness/travel), **other sports and season rules**, and the **test calendar** (see `training-program/SKILL.md` for the structure)
 2. `activity-cache.csv` — last 14 days: total km, elevation, session types, last hard session, rest days, consecutive training days. Read only the tail using `offset` near end-of-file with `limit: 50` — this gives plenty of context for a 14-day window at minimal token cost. For the weekly load figures also run `python3 scripts/program_health.py` (columns RunMin, Trail, RunKm, Hrs, D+) and quote **running minutes (and D+) first, km second**: for a trail runner time is the load measure, km depends on terrain. The same output also lists **zone minutes per week** (Z1-Z5, and trail separately) from `hr-histograms.csv`; quote them for the zone mix of recent weeks, and note when `cov` shows runs without a histogram (then the zone minutes are a lower bound). For one key session use `scripts/hr_zones.py` / the HR-zone rule in `CLAUDE.md`.
 3. `events-log.md` — any entries in last 14 days
 
@@ -98,11 +98,13 @@ Use the **session priority list** from the current phase in training-program.md 
 ### Volume
 
 Budget the week in **running minutes per HR zone** (plus D+), not in km. Time in zone is what builds a trail runner's fitness; km depends on terrain and conditions and cannot be compared between trail runs. Rules:
-- Take the phase's volume range from training-program.md. If the program states it in km, convert it to minutes with the athlete's recent road minutes-per-km (`program_health.py`: RunMin / RunKm of road-only weeks) and say so in the plan; suggest restating the program in hours when it is next revised.
+- Take the phase's volume range from training-program.md: normal week and deload week as running minutes. Apply the program's season rules (e.g. winter) and its other-sports rule (which sessions skiing, cycling etc. may replace) to the range. If the program states volume in km, convert it to minutes with the athlete's recent road minutes-per-km (`program_health.py`: RunMin / RunKm of road-only weeks) and say so in the plan; suggest restating the program in hours when it is next revised.
 - Plan every session as duration + absolute bpm zone (as the Garmin workouts are). Count warm-up and cool-down in the zone they are run in; strides/hill sprints are listed separately, not as zone time. Respect the program's polarization rule (no Z3 by accident).
 - **Trail running** (Garmin activity type Trail running, which the athlete picks whenever the route leaves roads/built paths): give time and HR zone only. Never a pace target and never a km figure.
 - km are only a rough estimate for road runs, derived from the athlete's recent road pace, and secondary.
-- When returning from disruption, target the lower end. Recovery weeks: ~65% of recent peak running minutes.
+- When returning from disruption, target the lower end. Recovery/deload weeks: use the program's stated deload range; if it states none, ~65% of recent peak running minutes.
+- **Flexibility rules from the program apply:** when the athlete is ill or travelling, plan the program's **minimum week** (one quality, one strength, one long run); after illness easy only and **no catching up** missed quality; the protected sessions (Tuesday-style quality, weekend long run) are placed first.
+- **Tests:** if a test from the program's test calendar falls in the plan's range, schedule it as written (venue, protocol, e.g. indoor lap counting when there is no GPS), keep it clear of strength days (72 h before when the program says so), and do not add a hard session next to it. A baseline test missed in the previous week is done now or dropped, as the program says.
 
 ### Day-by-day placement
 

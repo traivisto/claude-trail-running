@@ -95,9 +95,9 @@ rather than recomputing the whole table.
 
 ## Step 4: Extract program expectations
 
-Parse `training-program.md` for the current phase block. From it determine:
+Parse `training-program.md` for the current phase block. If it has a **Scored areas** section, only those areas are scored (everything else follows the applicability rule below as "not applicable"); programs written before that section existed fall back to the phase text. From it determine:
 
-- Expected weekly volume range (e.g. "50–70 km")
+- Expected weekly volume range, normally **running minutes** (e.g. "240–300 min, deload 190–230 min"); quote `RunMin` first and km second. Apply the program's season rules and other-sports rule: a week where skiing or cycling replaces runs is scored against the adjusted range the program states, not the normal one
 - Session priorities for this phase (long run, strength, etc.) — use
   whatever order/list the current phase's "Session priority this phase"
   section actually gives, not a fixed assumption. A maintenance phase may
@@ -114,6 +114,7 @@ Parse `training-program.md` for the current phase block. From it determine:
   Open items, phase goals) — for an interim program these may be things
   like "physio consult", "aerobic efficiency test", "review checkpoint
   date", not just race-prep milestones.
+- **Minimum-week and illness rules:** a week the program's rules classify as a minimum week (travel, illness recovery, as logged in the events log) is scored against the minimum (one quality, one strength, one long run), and missed quality in an illness week is not a gap. Tests slipping more than a week are "dropped" per the program, not red.
 - Any named disruption windows the program itself already flags (e.g. a
   "Known disruption — travel" section) — these carry their own adjusted
   expectations (usually lower volume, paused hill/quality work) and should
@@ -151,7 +152,7 @@ phase sets no requirement").
 
 | Area | 🟢 Green | 🟡 Yellow | 🔴 Red |
 |------|---------|----------|-------|
-| Volume vs. phase range (judge by the unit the phase states, km or hours; trail terrain makes km a poor measure, so also quote RunMin/hours and D+, and say if the verdict differs by unit) | within range for 3+ of last 4 weeks | below range 2+ weeks | below range 3+ weeks OR above peak range consistently |
+| Volume vs. phase range (judge by the unit the phase states; the preferred unit is running minutes, `RunMin`; trail terrain makes km a poor measure, so quote RunMin first, then km and D+, and say if the verdict differs by unit) | within range for 3+ of last 4 weeks | below range 2+ weeks | below range 3+ weeks OR above peak range consistently |
 | Volume trend (4-wk vs. prev 4-wk) | +5% to +20% in a build phase; flat ±5% in maintenance/recovery/taper | +/- appropriate but inconsistent | stagnant for 8+ weeks in a build phase (not a flag in a maintenance phase) |
 | Long-run progression — **build phase** (program states a progression target) | steadily increasing, hitting phase targets | plateaued 3+ weeks | plateaued 5+ weeks OR regressed |
 | Long-run progression — **maintenance phase** (program states no progression target) | stable within the stated duration/volume range | drifting below range 2+ weeks | absent 3+ weeks running |
@@ -185,8 +186,8 @@ omitted as not-applicable do not count against the verdict.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Last 8 weeks at a glance**
-Week of   Km    Hrs   Elev    Long    Str  Hill≥200m  Tech  Night  B2B
-Apr 13    47    6:45  610     18.2    2    1          0     0      yes
+Week of   RunMin  Km    Hrs   Elev    Long    Str  Hill≥200m  Tech  Night  B2B
+Apr 13    290     47    6:45  610     18.2    2    1          0     0      yes
 [...]
 
 (Drop the Night/B2B columns, or any other column tied to a not-applicable
@@ -247,8 +248,8 @@ Instead:
    no cache sync (the daily sync keeps it current; if the script's last line says the cache is stale,
    keep that caveat and do not call Garmin just for this), a ~250-word reply instead of the Step 6
    report, and no hand-offs.
-2. Read `training-program.md` (current phase block, Weekly Structure, Current Position, Open items,
-   named disruption windows, planned deload weeks) and `race-card.md` only if a race is decided.
+2. Read `training-program.md` (current phase block, Weekly Structure, Scored areas, flexibility/season/other-sports rules, Current Position, Open items,
+   named disruption windows, planned deload weeks, checkpoint date) and `race-card.md` only if a race is decided.
 3. Apply Steps 2, 4 and 5 to the script's numbers: the **applicability rule** (score only areas the
    current phase states; skip the rest in one line), deload weeks scored against their own volume, and
    disruption windows (travel, illness) that suppress flags. The headline verdict is the worst applicable
