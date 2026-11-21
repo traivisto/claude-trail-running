@@ -86,7 +86,7 @@ def athlete_config(athlete: Path) -> dict:
     return cfg
 
 
-def hi(rng: str, default: float) -> float:
+def hi(rng: str, default: float | None = None) -> float | None:
     nums = re.findall(r"\d+(?:\.\d+)?", rng or "")
     return float(nums[-1]) if nums else default
 
@@ -152,7 +152,9 @@ def main(argv) -> int:
     n = max(5, min(n, 26))
 
     long_km = f(cfg.get("long_run_threshold_km")) or 15.0
-    z2_max, z3_max = hi(cfg.get("hr_zone_z2_range"), 141), hi(cfg.get("hr_zone_z3_range"), 148)
+    z2_max, z3_max = hi(cfg.get("hr_zone_z2_range")), hi(cfg.get("hr_zone_z3_range"))
+    if z2_max is None or z3_max is None:
+        sys.exit("Athlete Config is missing hr_zone_z2_range / hr_zone_z3_range in athlete-profile.md")
     grey_lo = z2_max - 4
     deloads = deload_weeks(athlete, today)
 

@@ -2,7 +2,7 @@
 name: coach-monthly-summary
 description: >
   Generates a compact training summary for a given month from the local activity cache,
-  without calling the Garmin API. Use when the user asks "how was my training in January?",
+  without calling the Garmin API for the aggregates (an optional body-weight line makes one weigh-in call in interactive sessions). Use when the user asks "how was my training in January?",
   "summarize February", "coach summary for March", "how did I train last month?", or
   "compare my last 3 months", "how did January go?", "analyse February",
   "monthly summary", "how have I been training this month?", "training summary",
@@ -19,7 +19,7 @@ description: >
 # Coach Monthly Summary
 
 Generate a compact, coach-oriented training summary for a calendar month by reading
-from the local activity cache CSV. No Garmin API calls needed for cached months.
+from the local activity cache CSV. No Garmin API calls needed for the aggregates of cached months (the optional body-weight line is the one exception).
 
 ## Step 0: Resolve athlete directory
 
@@ -102,6 +102,8 @@ Wk1: X.X km (X sessions) | Wk2: X.X km (X) | Wk3: X.X km (X) | Wk4: X.X km (X) [
 
 **Time of day:** X Morning | X Daytime | X Evening | X Night
 
+**Body weight (interactive sessions only, background context, not scored):** [monthly average kg and n weigh-ins from `mcp__garmin__get_weigh_ins`, one call for the month(s); e.g. "XX,X kg (n=N), edellinen kk XX,X". Omit the line if no weigh-ins or in chat mode.]
+
 **Notable events:** [List any SICK / TRAVEL / ALCOHOL / other log entries from the month, e.g. "6.3–28.3 hengitystieinfektio (22 pv)". Omit this line entirely if the events log has no entries for the month.]
 
 **Key observations:**
@@ -175,8 +177,8 @@ yourself.
 
 ## Notes
 
-- **No API calls**: This skill reads entirely from the local CSV cache (`scripts/monthly_summary.py` does the reading and computing in every environment). If the cache
-  needs updating, delegate to the activity-cache-updater skill.
+- **No API calls** for the training aggregates: they come entirely from the local CSV cache (`scripts/monthly_summary.py` does the reading and computing in every environment). If the cache
+  needs updating, delegate to the activity-cache-updater skill. The one exception is the optional **Body weight** line (interactive sessions only): a single `get_weigh_ins` call for the month range. Use the monthly average, not single readings (daily values vary ±1 kg from fluid and food); body-fat and muscle-mass figures from the scale only follow weight and are not interpreted. Never in chat mode.
 - **Pace vs trail:** never compare or average trail paces, and never mix trail and road in one pace figure. For trail say time (and avg HR, ascent) and, when the script prints them, zone minutes (from `hr-histograms.csv`; only runs with a histogram are counted, shown as n/N).
 - **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.75 → 6:45/km).
 - **Zero handling**: Omit any category with zero entries rather than showing "0".

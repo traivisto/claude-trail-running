@@ -10,7 +10,7 @@ Heart-rate zone distribution of one activity, using the athlete's LTHR-based zon
 
 Zone boundaries are read from the `Athlete Config` block of <athlete>/athlete-profile.md
 (hr_zone_z1_max, hr_zone_z2_range ... hr_zone_z5_range). A value between two zones is assigned to the
-lower zone (e.g. Z3 142-148 -> 149 counts as Z3; 159 counts as Z4). Records are 1 s apart, so counts
+lower zone (e.g. with Z3 140-150 and Z4 152-160: 151 counts as Z3; 161 counts as Z4). Records are 1 s apart, so counts
 are seconds. Prints the whole-activity split and, when laps exist, the split per lap. Pure stdlib.
 """
 

@@ -46,7 +46,7 @@ Before answering any coaching question — including gear, pacing, race strategy
 Whenever a single activity's heart rate is analysed (e.g. "how did today's run look?", interval review, zone distribution), read `garmin-mcp/SKILL.md` and the `Athlete Config` block in `athlete-profile.md` first.
 
 1. **Never use `get_activity_hr_in_timezones`** or Garmin's own zone numbers/time-in-zone figures — they use %HRmax-based boundaries and do not match the athlete's LTHR-based zones.
-2. **Compute the distribution yourself** with the boundaries from `Athlete Config`, from per-second HR in `get_activity_fit_data` with `include_records=true`. The result is large (~1 MB for a 1 h run) and is saved to a file: process it in code (Python), do not read it into context. Assign values that fall between two zones to the lower zone for the gap above a zone's max (e.g. Z3 142–148 → 149 counts as Z3; 159 counts as Z4) and say so.
+2. **Compute the distribution yourself** with the boundaries from `Athlete Config`, from per-second HR in `get_activity_fit_data` with `include_records=true`. The result is large (~1 MB for a 1 h run) and is saved to a file: process it in code (Python), do not read it into context. Assign values that fall between two zones to the lower zone for the gap above a zone's max (e.g. with Z3 140–150 and Z4 152–160: 151 counts as Z3; 161 counts as Z4) and say so.
 3. For interval sessions, report time in target zone per interval (use the lap `start_time` values from the same data), not only the whole-run totals.
 4. If the fit data is unavailable, fall back to lap-level avg/max HR from `get_activity_splits` and state that the zone split is approximate.
 

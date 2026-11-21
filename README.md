@@ -91,7 +91,7 @@ Claude builds a plan, saves it as a draft for you to review, then pushes session
 
 **Monthly review** — *"How was my training in March?"*
 
-Generates a compact coaching summary from the local cache — no API calls needed. Works across multiple months for trend analysis.
+Generates a compact coaching summary from the local cache — the aggregates need no API calls (an optional body-weight line uses one Garmin weigh-in call in interactive sessions). Works across multiple months for trend analysis.
 
 **Log a disruption** — Add a line to `athletes/<id>/events-log.md`:
 ```
