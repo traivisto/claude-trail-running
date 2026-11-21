@@ -163,6 +163,7 @@ From the CSV, extract the last 14 days of activities (by date). Calculate:
 If the cache contains `rpe` and/or `feel` columns (Garmin's post-activity subjective effort), compute:
 - **RPE trend:** mean RPE of the last 3 running sessions that have a value. If this mean ≥ 8 while prescribed effort was easy/base, that is a fatigue flag worth mentioning.
 - **Feel trend:** count of "weak" / "very weak" feel labels in the last 7 days. Two or more in a row of low-feel ratings on easy days is a caution signal even when biometrics look OK.
+- RPE is a low-reliability, athlete-rated signal (the athlete does not yet trust rating it repeatably): it is never a load measure and never alone grounds for blocking easy activity (see the Load and rest reasoning rule).
 - If neither column has recent values, skip this check silently — it is additive context, not required.
 
 ---

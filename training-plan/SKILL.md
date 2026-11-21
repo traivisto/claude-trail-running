@@ -102,7 +102,7 @@ Budget the week in **running minutes per HR zone** (plus D+), not in km. Time in
 - Plan every session as duration + absolute bpm zone (as the Garmin workouts are). Count warm-up and cool-down in the zone they are run in; strides/hill sprints are listed separately, not as zone time. Respect the program's polarization rule (no Z3 by accident).
 - **Trail running** (Garmin activity type Trail running, which the athlete picks whenever the route leaves roads/built paths): give time and HR zone only. Never a pace target and never a km figure.
 - km are only a rough estimate for road runs, derived from the athlete's recent road pace, and secondary.
-- When returning from disruption, target the lower end. Recovery/deload weeks: use the program's stated deload range; if it states none, ~65% of recent peak running minutes.
+- When returning from disruption, target the lower end. Recovery/deload weeks: use the program's stated deload range; if it states none, ~75–80% of the normal-week running-minute target (the ratio the program itself uses).
 - **Flexibility rules from the program apply:** when the athlete is ill or travelling, plan the program's **minimum week** (one quality, one strength, one long run); after illness easy only and **no catching up** missed quality; the protected sessions (Tuesday-style quality, weekend long run) are placed first.
 - **Tests:** if a test from the program's test calendar falls in the plan's range, schedule it as written (venue, protocol, e.g. indoor lap counting when there is no GPS), keep it clear of strength days (72 h before when the program says so), and do not add a hard session next to it. A baseline test missed in the previous week is done now or dropped, as the program says.
 

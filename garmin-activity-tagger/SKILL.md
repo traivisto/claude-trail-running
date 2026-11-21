@@ -43,7 +43,7 @@ The Athlete Config block in `ATHLETE_DIR/athlete-profile.md` is the source for a
 | Modifier | Trigger condition |
 |----------|-------------------|
 | **+ Hill** | Elevation gain per km > `hill_modifier_threshold_m_per_km` from Athlete Config |
-| **+ Technical terrain** | Actual pace > expected pace × `technical_terrain_multiplier` from Athlete Config (pace unexplained by elevation alone — see formula below) |
+| **+ Technical terrain** | Road runs only. Actual pace > expected pace × `technical_terrain_multiplier` from Athlete Config (pace unexplained by elevation alone — see formula below) |
 
 Multiple modifiers can stack: *Long effort + Hill + Technical terrain* is valid.
 
@@ -118,7 +118,7 @@ Work through these checks **in order** — use the first that matches:
 Then check modifiers **independently** (apply as many as fit):
 
 - **Hill modifier** — elevation_per_km > `hill_modifier_threshold_m_per_km` (skip if distance < 2 km or elevation data missing)
-- **Technical terrain modifier** — see formula below (running activities only, distance > 2 km)
+- **Technical terrain modifier** — see formula below (**road runs only** (`running`, not `trail_running`), distance > 2 km; trail pace is not compared, trail = watch activity type)
 
 ---
 
@@ -223,4 +223,5 @@ If classification is genuinely ambiguous, note both candidates and explain which
 - **Multi-sport:** Apply purpose logic to dominant segment (longest by duration); note modality as Multi-sport. For the **Hill modifier**, use the dominant segment's elevation and distance (from `get_activity_splits`), not the overall totals — cycling legs dilute elev_per_km and can cause the flag to be missed. Example: a hiking drill with 529 m / 10 km = 52.9 m/km qualifies as Hill even if the full multisport activity shows only 32.9 m/km overall.
 - **Missing elevation data:** Skip Hill modifier entirely — never infer.
 - **Very short activities (< 20 min):** Lean toward Recovery or Strength unless HR/label says otherwise.
+- **Technical terrain on trail runs:** never flagged (always `False`); pace is not a trail measure.
 - **Technical terrain on road runs:** Valid — wet cobblestones, muddy paths, icy roads all slow pace. Note the likely cause if inferrable.
