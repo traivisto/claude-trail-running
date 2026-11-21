@@ -134,8 +134,10 @@ average pace/HR, which includes warm-up and cool-down and is misleading. Analyse
   flagged the workout as too long.
 - **Z1 and Z1–Z2 runs:** a single workout step (duration + HR range) when the whole run is in one zone; no
   separate warm-up/cool-down. Zone-split runs (35 min Z1 + 15 min Z2): one step per zone block, own absolute bpm.
-- **Short efforts (strides, sprints, anything under ~2 min):** not in the watch; described in the plan text only,
-  stating whether they are inside or on top of the stated duration. Efforts of ~2 min or more are watch steps.
+- **Short efforts (strides, sprints, anything under ~2 min) as an add-on:** not in the watch; described in the plan
+  text only, stating whether they are inside or on top of the stated duration. Efforts of ~2 min or more are watch
+  steps. **Exception (21.11.2026):** when short repeats are the session's main content (e.g. 8–10 × 200 m, 30-30),
+  they are programmed in the watch as a repeat group.
 - **Quality sessions** (tempo, hill repeats, intervals): warm-up and cool-down are separate steps. They end
   with the lap button (`PRESS_LAP`), with the target time (~10 min) only as a guide in the plan and step
   description: the athlete starts the effort where the spot suits (clear stretch, after a busy crossing).

@@ -64,9 +64,11 @@ If the user confirms, proceed — Step 6a will automatically clean up the old [C
 
 ## Step 3: Gather context
 
+First apply the **Activity cache sync rule** in `CLAUDE.md` (single source of truth for cache freshness): the cache must be current before it is read below or `scripts/program_health.py` is run.
+
 Read these in parallel **using the Read tool, not bash** (see CLAUDE.md File reading rule — bash sees a stale mount):
 
-1. `training-program.md` — current phase, active goals, session priority list, volume range, and the program's rules: **flexibility rules** (protected sessions, minimum week, illness/travel), **other sports and season rules**, and the **test calendar** (see `training-program/SKILL.md` for the structure)
+1. `training-program.md` — current block (older programs: phase), active goals, the block's key session, **Weekly Structure** (including strength frequency and length), volume range, **planned deload weeks** (`Week N (d.m.–d.m.) deload` lines), named **known disruptions**, and the program's rules: **flexibility rules** (protected sessions, minimum week, illness/travel), **other sports and season rules**, and the **test calendar** (see `training-program/SKILL.md` for the structure)
 2. `activity-cache.csv` — last 14 days: total km, elevation, session types, last hard session, rest days, consecutive training days. Read only the tail using `offset` near end-of-file with `limit: 50` — this gives plenty of context for a 14-day window at minimal token cost. For the weekly load figures also run `python3 scripts/program_health.py` (columns RunMin, Trail, RunKm, Hrs, D+) and quote **running minutes (and D+) first, km second**: for a trail runner time is the load measure, km depends on terrain. The same output also lists **zone minutes per week** (Z1-Z5, and trail separately) from `hr-histograms.csv`; quote them for the zone mix of recent weeks, and note when `cov` shows runs without a histogram (then the zone minutes are a lower bound). For one key session use `scripts/hr_zones.py` / the HR-zone rule in `CLAUDE.md`.
 3. `events-log.md` — any entries in last 14 days
 
@@ -85,15 +87,15 @@ If Garmin/Oura is unavailable, proceed with cache data only — note it briefly 
 
 ### Determine the week's character
 
-Based on the training-program.md block rhythm (Build → Peak → Recovery) and recent load from the cache, decide if this is a build week, peak week, or recovery week. Post-illness or after a very hard block, default to recovery/rebuild framing even if the calendar says otherwise.
+The week's type is read from the program, not decided here: it is a **deload week** if training-program.md lists it as a `Week N (d.m.–d.m.) deload` line (use that line's minutes and the program's description of what a deload week contains), otherwise a normal week of the **current block** (its key session and volume range). If the program does not say what a deload week contains, keep the protected sessions at reduced volume and say in the Context line that the program is silent on it. Recent load from the cache can only move the week *down* (post-illness or after a very hard block: rebuild framing, lower end of the range), and the plan says why with numbers.
 
 ### Session selection
 
-Use the **session priority list** from the current phase in training-program.md as your guide. For Phase 1 (Foundation):
+Use the **current block's key session and the Weekly Structure** in training-program.md as your guide. In the order of the program's priorities (typically):
 1. Long run (Z1–Z2) — the week's anchor, scheduled on a day with no hard session before or after
-2. Strength (30 min) — 1×/week early Foundation, aim for 2×/week once running volume is re-established. Never the day before a long run.
+2. Strength — frequency and length as the Weekly Structure states (default 30 min if no length is stated). Never the day before a long run.
 3. Easy aerobic runs (Z1) — genuine recovery pace, at or below `hr_zone_z1_max` from Athlete Config
-4. Quality session (tempo Z4) — only in build/peak weeks, never when returning from illness or injury
+4. Quality session — the block's key session (e.g. the Tuesday session), in every non-deload week unless the program says otherwise; never when returning from illness or injury (flexibility rules)
 
 ### Volume
 
@@ -104,14 +106,14 @@ Budget the week in **running minutes per HR zone** (plus D+), not in km. Time in
 - km are only a rough estimate for road runs, derived from the athlete's recent road pace, and secondary.
 - When returning from disruption, target the lower end. Recovery/deload weeks: use the program's stated deload range; if it states none, ~75–80% of the normal-week running-minute target (the ratio the program itself uses).
 - **Flexibility rules from the program apply:** when the athlete is ill or travelling, plan the program's **minimum week** (one quality, one strength, one long run); after illness easy only and **no catching up** missed quality; the protected sessions (Tuesday-style quality, weekend long run) are placed first.
-- **Tests:** if a test from the program's test calendar falls in the plan's range, schedule it as written (venue, protocol, e.g. indoor lap counting when there is no GPS), keep it clear of strength days (72 h before when the program says so), and do not add a hard session next to it. A baseline test missed in the previous week is done now or dropped, as the program says.
+- **Tests:** if a test from the program's test calendar falls in the plan's range, schedule it as written (venue, protocol, e.g. indoor lap counting when there is no GPS) and do not add a hard session next to it. Apply the program's **test-week rule**: by default a maximal test replaces that week's quality session, and the strength spacing (e.g. 72 h before) applies only to the tests for which the program states it. If the program is silent, use those defaults and say so in the plan. A baseline test missed in the previous week is done now or dropped, as the program says.
 
 ### Day-by-day placement
 
 Fit sessions to the requested date range. Prioritise:
 - Long run on a day where the next day can be easy or rest
 - Strength on easy-run days (after the run) or standalone rest days
-- Back-to-back long weekends only in Phase 2+
+- Back-to-back long weekends only when the current block of the program states them
 - Rest days are real days — include at least one per 7-day window
 
 **Hard constraints — check these before finalising any plan:**
@@ -140,7 +142,7 @@ Use this structure:
 # Training Plan: [start date full] – [end date full]
 
 **Status:** Draft — not yet pushed to Garmin
-**Created:** [today's date] · **Phase:** [current phase name]
+**Created:** [today's date] · **Block:** [current block name and week, read from training-program.md; "deload" if it is a planned deload week]
 **Context:** [1–2 sentences: why this plan looks the way it does — post-illness, build week, etc.]
 
 ---
@@ -211,7 +213,7 @@ For each **running session** in the plan, create a structured workout and schedu
 
 **Z1 and Z1–Z2 easy runs:** a single step when the whole run is in one zone (Z1: from a low floor up to `hr_zone_z1_max`; Z1–Z2: up to the top of `hr_zone_z2_range`; both from `Athlete Config`, no warmup/cooldown). When the plan splits the run by zone (e.g. 35 min Z1 + 15 min Z2), make one step per zone block with its own absolute bpm target (2–3 steps in total), with the durations summing to the planned total.
 
-**Short efforts are not put in the watch.** Strides, hill sprints and any other effort under ~2 min (e.g. 4–6 × 20 s) are written in the plan text only and done by feel; do not program them as repeat groups. Decide, when building the session, whether they are inside or on top of the stated duration and say so in the plan (e.g. "50 min Z1–Z2 + 4–6 × 20 s strides at the end, not in the watch"). The watch then shows the main run only, so the total stays equal to the plan's stated duration.
+**Short efforts as an add-on are not put in the watch.** Strides, hill sprints and any other effort under ~2 min (e.g. 4–6 × 20 s) that are an extra on top of or at the end of a run are written in the plan text only and done by feel; do not program them as repeat groups. **Exception (decided 21.11.2026): when short repeats are the session's main content** (e.g. the week's key session 8–10 × 200 m, 6 × 400 m, 30-30), program them in the watch as a repeat group (warm-up and cool-down with the lap button, work and recovery steps as the session states them, HR target only where it is meaningful; for very short reps the plan may give effort/pace by feel instead). Decide, when building the session, whether they are inside or on top of the stated duration and say so in the plan (e.g. "50 min Z1–Z2 + 4–6 × 20 s strides at the end, not in the watch"). The watch then shows the main run only, so the total stays equal to the plan's stated duration.
 
 **Longer efforts (≥ ~2 min), which are hard to time in your head** (e.g. 2–10 min tempo or threshold blocks), are watch steps: time-based with an HR target.
 
@@ -260,9 +262,9 @@ Immediately call `schedule_workout` with the workout ID and the correct date.
 
 ### Strength training workouts
 Strength sessions are planned sessions and belong in the Garmin calendar. Create a simple workout:
-- Name: `[Coach] Strength training 30 min`
+- Name: `[Coach] Strength training 30 min` (use the length from the program's Weekly Structure; default 30 min)
 - Sport: `sportTypeId: 5, sportTypeKey: "strength_training"`
-- Structure: one step, 30 minutes, no HR target (`workoutTargetTypeId: 1`)
+- Structure: one step, the stated length, no HR target (`workoutTargetTypeId: 1`)
 - Schedule to the correct date
 
 ### What NOT to push to Garmin
@@ -278,6 +280,6 @@ After all Garmin workouts are scheduled, update `current-plan.md` status line:
 **Status:** Approved — pushed to Garmin [today's date]
 ```
 
-If the plan represents a meaningful milestone (first week back, new long-run distance, phase transition), also update the **Current Position** section in `training-program.md`.
+If the plan represents a meaningful milestone (first week back, new long-run duration, block transition), also update the **Current Position** section in `training-program.md`.
 
 Confirm to the user: which workouts are now in Garmin, on which dates, with which HR targets.

@@ -11,6 +11,8 @@ The program is decided in conversation with the athlete. This skill does not dic
 
 Resolve **ATHLETE_DIR** as in `CLAUDE.md` → "Athlete directory". Read (Read tool, not bash) `athlete-profile.md`, `race-card.md`, `events-log.md` and the existing `training-program.md` if any.
 
+Whenever this skill reads the activity cache (Step 2 item 2, Step 4 item 3, Step 5 via `scripts/program_health.py`), first apply the **Activity cache sync rule** in `CLAUDE.md` (single source of truth for cache freshness).
+
 ## Step 1: Mode
 
 - **New program** (no active program, or a race was just chosen): continue to Step 2.
@@ -34,24 +36,26 @@ The file must contain these, each with a unit and scope:
 
 - **Goals:** primary and secondary, each with its measure. State explicitly what is *not* a goal.
 - **Volume:** **running minutes per week** (Trail + Road), normal week and deload week, as targets to aim for. Say what total training hours means (context only, unless decided otherwise). Do not use km as a target.
-- **Blocks:** dates, purpose, the Tuesday-style key session, deload week per block written exactly as `Week N (d.m.–d.m.) deload, X min` (the script parses this).
+- **Weekly structure:** the day-by-day pattern, rest days, strength frequency **and session length** (`training-plan` uses it; default 30 min if none is stated).
+- **Blocks** (older programs say "phase"; the other skills read whichever word the file uses, but use "block" in new programs): dates, purpose, the Tuesday-style key session, deload week per block written exactly as `Week N (d.m.–d.m.) deload, X min` (the script parses this; always write the start month, also when the week crosses a month boundary). Say **what a deload week contains**: which sessions stay (e.g. quality kept at reduced volume or dropped, strength, long run length), because `training-plan` and `program-health-check` both need it.
+- **Known disruptions:** named windows (travel, camps, exams) with their adjusted expectations, either as their own section or under Current Position → Open items.
 - **Protected sessions and minimum week:** what stays when time or health is short.
 - **Other sports:** which sessions they may replace and which they may not (default: Tuesday-style quality and the long run stay runs), and how the running-minute target changes while they replace runs. By default other sports are not running minutes and are not scored by `program-health-check`; their load shows in Garmin CTL/ACWR. Light activity (easy swim, walk) is not counted as load unless the data says so.
 - **Season rules:** per season that matters, the adjusted expectations (e.g. winter: ice → quality on a treadmill/indoor track or dropped, no speed work on ice, long run may shorten) and the adjusted running-minute range.
 - **Illness / travel rules:** easy only when ill, no catching up missed quality, how long a test may slip before it is dropped.
-- **Test calendar:** date, test, *what it measures* (ceiling, threshold, aerobic economy), **where** (a test that must be repeatable in a season with unreliable weather is done indoors: indoor track or the same treadmill at fixed incline; name the venue/device and use the same one every time), and baseline plan. Indoor results are not comparable with outdoor results; keep one series per venue type. Say how distance and time are recorded where GPS does not work (indoors): count laps (lap button each lap or the watch's track/indoor mode), take distance = laps × lap length + the fraction of the last lap, and log that figure in `events-log.md` as the authoritative result (the watch distance in the cache may be off). A baseline missed in week N is done in N+1 or dropped explicitly. A maximal test costs a quality session; keep few, spaced 6–8 weeks.
+- **Test calendar:** date, test, *what it measures* (ceiling, threshold, aerobic economy), **where** (a test that must be repeatable in a season with unreliable weather is done indoors: indoor track or the same treadmill at fixed incline; name the venue/device and use the same one every time), and baseline plan. Indoor results are not comparable with outdoor results; keep one series per venue type. Say how distance and time are recorded where GPS does not work (indoors): count laps (lap button each lap or the watch's track/indoor mode), take distance = laps × lap length + the fraction of the last lap, and log that figure in `events-log.md` as the authoritative result (the watch distance in the cache may be off). A baseline missed in week N is done in N+1 or dropped explicitly. A maximal test costs a quality session; keep few, spaced 6–8 weeks. **State the test week's shape:** a maximal test replaces that week's quality session (default; say so if it does not), and the strength spacing before the test (e.g. strength moved to ≥ 72 h before a standard-route test; say which tests this applies to). `training-plan` applies exactly these rules and no broader ones.
 - **Checkpoint:** a date where the program is reviewed and the next step (race build or continue) is decided.
 - **Current Position** section (last updated, block, open items) and an "On a race decision" line.
 - **Scored areas:** list the areas `program-health-check` may score in this phase (see its applicability rule); anything not listed is not scored.
 
-Keep the athlete's earlier rationale sections if they still hold; mark superseded numbers instead of silently deleting them.
+Headings are free, except that the deload lines must match the format above and the section must be titled "Scored areas (program-health-check)". Keep the athlete's earlier rationale sections if they still hold; mark superseded numbers instead of silently deleting them.
 
 ## Step 4: Write, archive, check
 
 1. If a program exists, copy it to `ATHLETE_DIR/arkisto/training-program-<name>-YYYY-MM-DD.md` first.
 2. Show the athlete a short summary of changes before writing; write after approval.
 3. Run `python3 scripts/program_health.py`; confirm the planned deload weeks are marked `D` and nothing errors.
-4. Check: every goal has a measure, every number has a unit, no target is stated only in km.
+4. Check: every goal has a measure, every number has a unit, no target is stated only in km, and any older km-based section or Current Position figure that still stands is marked superseded or restated in minutes.
 5. Log the decision as a MILESTONE in `events-log.md` and lasting decisions in `memory.md`.
 
 ## Step 5: Review mode

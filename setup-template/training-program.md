@@ -20,7 +20,8 @@
 | Total training hours | context only | |
 
 ## Weekly structure
-[Day-by-day pattern, rest days, strength frequency.]
+[Day-by-day pattern, rest days, strength frequency and session length (min).]
+Deload week contains: [which sessions stay, e.g. quality at reduced volume or dropped; strength; long run length.]
 
 ## Protected sessions and minimum week
 [What stays when time or health is short.]
@@ -34,14 +35,18 @@
 
 ## Blocks
 ### Block 1 · [name] — [d.m.–d.m.]
-[Purpose, key session, volume.]
-- Week N (d.m.–d.m.) deload, [min] min.
+[Purpose, key session, volume in running minutes.]
+- Week N (d.m.–d.m.) deload, [min] min.  <!-- parsed by scripts/program_health.py; always write the start month -->
+
+## Known disruptions
+[Named windows (travel, camps, exams) with adjusted expectations, or "none". May also sit under Current Position → Open items.]
 
 ## Test calendar
 | Date | Test | Measures | Where / how recorded |
 |---|---|---|---|
 
 Baseline plan: [a baseline missed in week N is done in N+1 or dropped explicitly]
+Test-week rule: [a maximal test replaces that week's quality session (default); strength spacing before the test, e.g. ≥ 72 h before a standard-route test, and which tests it applies to.]
 
 ## Checkpoint
 [Date; what is decided there.]

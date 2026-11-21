@@ -42,7 +42,7 @@ Read these files **using the Read tool, not bash** (see CLAUDE.md File reading r
 
 1. `ATHLETE_DIR/training-program.md` — phase map, volume ranges, session priorities per phase, current position, explicit race-specific milestones
 2. `ATHLETE_DIR/race-card.md` — race date, start time, distance, elevation, terrain notes
-3. `ATHLETE_DIR/athlete-profile.md` Athlete Config — `typical_weekly_km`, `long_run_threshold_km`, `hill_modifier_threshold_m_per_km`, HRV/RHR baselines
+3. `ATHLETE_DIR/athlete-profile.md` Athlete Config — `long_run_threshold_min` (long-run judgement, by duration), `long_run_threshold_km` (used by the script only for the back-to-back column), `hill_modifier_threshold_m_per_km`, HRV/RHR baselines
 4. `ATHLETE_DIR/events-log.md` — illness, travel, disruptions, tests, milestones (the script also prints the last 60 days; read the file for older context)
 
 The activity cache itself is read by `scripts/program_health.py` (Step 3), not by you. Before running it, apply the **Activity cache sync rule** in `CLAUDE.md` (single
@@ -66,10 +66,10 @@ If a next race **is** decided, extract the race start date from
 
 - Days until race
 - Weeks until race (integer)
-- Which phase of the program this falls in, according to the phase map
+- Which block of the program this falls in (older programs say "phase"), according to the block map
   in `training-program.md`
 
-Flag if the calendar phase in the program file (e.g. "Phase 2 starts April 20")
+Flag if the calendar block in the program file (e.g. "Block 4 starts 21.12.")
 does not match the program's **Current Position** section (stale update).
 
 ---
@@ -83,7 +83,7 @@ authority for the exact definitions. Per ISO week it prints: running km, running
 (km/min), strength sessions, hill sessions (>= 200 m), technical-terrain sessions, night sessions, quality
 sessions (purpose, name keyword or anaerobic TE > 2.5), grey-zone sessions (avg-HR proxy from `Athlete
 Config`), back-to-back weekends (Sat long run + Sun >= 10 km); plus the 4-week volume trend (average running
-minutes, with km alongside, per non-deload week, 4 vs the previous 4), the dates of quality and strength sessions, D+ per calendar
+minutes, with km alongside, per non-deload week, 4 vs the previous 4), the dates of quality and strength sessions, **zone minutes per week** (Z1-Z5, trail separately, from `hr-histograms.csv`; `cov` shows runs without a histogram, then the zone minutes are a lower bound), D+ per calendar
 month, night sessions in 8 weeks and the last 60 days of the events log. Planned deload weeks are marked
 `D` (read from `training-program.md`) and are excluded from the trend.
 
@@ -98,9 +98,9 @@ rather than recomputing the whole table.
 Parse `training-program.md` for the current phase block. If it has a **Scored areas** section, only those areas are scored (everything else follows the applicability rule below as "not applicable"); programs written before that section existed fall back to the phase text. From it determine:
 
 - Expected weekly volume range, normally **running minutes** (e.g. "240–300 min, deload 190–230 min"); quote `RunMin` first and km second. Apply the program's season rules and other-sports rule: a week where skiing or cycling replaces runs is scored against the adjusted range the program states, not the normal one
-- Session priorities for this phase (long run, strength, etc.) — use
-  whatever order/list the current phase's "Session priority this phase"
-  section actually gives, not a fixed assumption. A maintenance phase may
+- Session priorities for this block (long run, strength, etc.) — use
+  whatever order/list the current block's text and the program's Weekly
+  Structure actually give, not a fixed assumption. A maintenance phase may
   rank strength or quality above the long run, unlike a race-build phase.
 - Phase-specific requirements, read literally from the current phase's text
   — do not assume race-build requirements apply. Examples seen in past
@@ -122,8 +122,8 @@ Parse `training-program.md` for the current phase block. If it has a **Scored ar
   rather than flagging them as drift. Look for such windows anywhere in the
   program file, including Current Position → Open items (e.g. a travel
   period), not only under a "Known disruption" heading.
-- **Planned deload weeks** (e.g. "Week 4 deload, ~35 km"): score that week
-  against its own stated volume, not the block's normal range, and exclude
+- **Planned deload weeks** (e.g. "Week 4 (28.9.–4.10.) deload, 200 min"): score that week
+  against its own stated volume and the program's description of what a deload week contains, not the block's normal range, and exclude
   deload weeks when judging volume and long-run trends across blocks.
 - **Long-run cap by duration:** if the program states the long run as a
   duration (e.g. "90–120 min, ≤ 2 h"), judge long-run progression by
@@ -163,7 +163,7 @@ phase sets no requirement").
 | Back-to-back weekends (only if phase states this requirement) | ≥ 2 per 4-week block | 1 per 4-week block | 0 per 4-week block |
 | Quality/speed session frequency (only if phase names this as a priority, e.g. a speed-development focus) | meeting stated ×/week frequency | 50–80% of stated frequency | <50% of stated frequency |
 | Hill exposure — monthly D+ (only if phase states a monthly D+ target) | calendar month on pace for the target (pro-rate the current month) | 60–99% of pro-rated target | < 60% of target for a full month |
-| Polarization / grey zone (only if the program states a polarization rule) | ≤ 1 grey-zone session in last 4 weeks | 2–3 sessions | ≥ 4 sessions, or a cluster in consecutive weeks (defaults — the program file's own tolerance overrides) |
+| Polarization / grey zone (only if the program states a polarization rule). Judge primarily by **Z3 minutes** from the zone-minute table when `cov` is complete (a Z2 long run the program allows must not count as grey); use the grey-zone session count (avg-HR proxy) only when zone minutes are missing or `cov` is incomplete, and say which basis you used | ≤ 1 grey-zone session in last 4 weeks | 2–3 sessions | ≥ 4 sessions, or a cluster in consecutive weeks (defaults — the program file's own tolerance overrides) |
 | Key milestones (whatever the program file lists — race-prep or otherwise, e.g. physio consult, field test, review checkpoint) | all on schedule | 1 slipping | 2+ slipping |
 | Disruption context | no active illness, no major recent gap; any program-flagged disruption window (e.g. travel) is proceeding as expected | minor recent disruption, recovered | active illness or CLEARED < 7 days ago |
 
@@ -180,19 +180,20 @@ omitted as not-applicable do not count against the verdict.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  Race:           [race name — race date] OR [No active race — interim/maintenance phase]
  Time to race:   [X weeks X days] OR [n/a]
- Current phase:  [Phase name per program file]
- Program says:   [e.g. Phase 2 since Apr 20 — Block 3 peak week] OR [e.g. Phase B — Maintenance & Development, week 3/12]
+ Current block:  [Block (or phase) name per program file]
+ Program says:   [e.g. Block 3 Threshold, week 4/7] OR [e.g. Phase B — Maintenance & Development, week 3/12]
  Overall:        [🟢 On track / 🟡 Drifting / 🔴 Off track]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 **Last 8 weeks at a glance**
-Week of   RunMin  Km    Hrs   Elev    Long    Str  Hill≥200m  Tech  Night  B2B
-Apr 13    290     47    6:45  610     18.2    2    1          0     0      yes
+Week of   RunMin  Km    Hrs   Elev    Long    Str  Qual  Hill≥200m  Grey  Night  B2B
+Apr 13    290     47    6:45  610     18.2    2    1     1          0     0      yes
 [...]
 
-(Drop the Night/B2B columns, or any other column tied to a not-applicable
-row, when the current phase doesn't call for them — don't display data with
-no reference point.)
+(Drop the Qual/Grey/Night/B2B columns, the Tech column the script also prints,
+or any other column tied to a not-applicable row, when the current block
+doesn't call for them — don't display data with no reference point. Mark
+deload weeks `D`.)
 
 **Checks**
 
@@ -200,9 +201,10 @@ no reference point.)
 🟢/🟡/🔴 Volume trend:           [4-wk vs. prev 4-wk, + direction]
 🟢/🟡/🔴 Long-run progression:    [longest per week for last 6 weeks]
 🟢/🟡/🔴 Strength frequency:      [sessions/week vs. prescription]
+🟢/🟡/🔴 Quality frequency:       [quality sessions/week vs. the block's stated frequency; deload and minimum weeks per their rules]
 🟢/🟡/🔴 Hill exposure (D+):       [D+ last 4 weeks vs. the target the phase actually states (weekly or monthly); trend]
 🟢/🟡/🔴 Hill exposure (sessions): [count sessions ≥200 m gain last 4 weeks]
-🟢/🟡/🔴 Polarization:            [grey-zone sessions last 4 weeks (avg-HR proxy, band as printed on the script's Config line)]
+🟢/🟡/🔴 Polarization:            [Z3 minutes last 4 weeks (zone table), or grey-zone sessions (avg-HR proxy, band as printed on the script's Config line) when zone minutes are incomplete]
 🟢/🟡/🔴 Night sessions:          [count last 8 weeks; race start time]
 🟢/🟡/🔴 Back-to-back weekends:   [count last 4 weeks; phase threshold]
 🟢/🟡/🔴 Key milestones:          [bullet list of named milestones with status]
@@ -288,6 +290,6 @@ Instead:
   into a new one without the new program restating them — those numbers
   were calibrated to a specific race's elevation profile and are meaningless
   without it.
-- Phase naming is not fixed to "Phase 1–4" — programs may use "Phase A/B"
-  or any other scheme. Parse whatever `training-program.md` actually uses;
+- Naming is not fixed: current programs use "Block 1–N", older ones "Phase 1–4"
+  or "Phase A/B", or any other scheme. Parse whatever `training-program.md` actually uses;
   don't assume a specific numbering convention.
