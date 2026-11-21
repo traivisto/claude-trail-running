@@ -177,7 +177,7 @@ yourself.
 
 - **No API calls**: This skill reads entirely from the local CSV cache (`scripts/monthly_summary.py` does the reading and computing in every environment). If the cache
   needs updating, delegate to the activity-cache-updater skill.
-- **Pace vs trail:** never compare or average trail paces, and never mix trail and road in one pace figure. For trail say time (and avg HR, ascent); time-in-zone per trail run is not in the cache yet (it needs per-second HR via `scripts/hr_zones.py` on one activity).
+- **Pace vs trail:** never compare or average trail paces, and never mix trail and road in one pace figure. For trail say time (and avg HR, ascent) and, when the script prints them, zone minutes (from `hr-histograms.csv`; only runs with a histogram are counted, shown as n/N).
 - **Pace formatting**: Convert decimal min/km to M:SS format (e.g., 6.75 → 6:45/km).
 - **Zero handling**: Omit any category with zero entries rather than showing "0".
 - **Rounding**: Keep distances to 1 decimal, durations to whole minutes, elevation to whole meters.

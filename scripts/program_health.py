@@ -26,7 +26,7 @@ Definitions (same as the skill):
   * Grey-zone session = running session that is not Interval / VO2max / Tempo / Threshold and has
     avg HR from (hr_zone_z2 max - 4) up to hr_zone_z3 max (proxy, avg HR only).
   * B2B = Saturday run >= long_run_threshold_km and Sunday run >= 10 km in the same weekend.
-  * Planned deload weeks are read from lines containing "deload" and a date range (d.m.-d.m.) in
+  * Planned deload weeks are read from lines containing "deload" and "Week N (d.m.-d.m.)" (start month optional) in
     training-program.md and marked "D" in the table. The volume trend compares the average run km per
     non-deload week of the last 4 completed weeks with the 4 before them (current week excluded).
 """
@@ -98,20 +98,23 @@ def is_quality(r) -> bool:
 
 
 def deload_weeks(athlete: Path, today: date) -> set:
-    """Mondays of weeks that training-program.md flags as deload (start date of a 'deload' line's range)."""
+    """Mondays of weeks that training-program.md flags as deload ("Week N (d.m.-d.m.) deload" lines)."""
     path = athlete / "training-program.md"
     if not path.exists():
         return set()
     out = set()
-    rng = re.compile(r"(\d{1,2})\.(\d{1,2})\.?\s*[–-]\s*\d{1,2}\.\d{1,2}\.")
+    # "Week 4 (23.-29.11.) deload": the range right after "Week N" on a line that mentions deload. The start
+    # month may be omitted ("23.-29.11."). Other date ranges on the same line (e.g. CTL periods) are ignored.
+    rng = re.compile(r"week\s*\d+\s*\(\s*(\d{1,2})\.(\d{1,2})?\.?\s*[\u2013-]\s*\d{1,2}\.(\d{1,2})\.\s*\)", re.I)
     for line in path.read_text(encoding="utf-8").splitlines():
         if "deload" not in line.lower():
             continue
         for m in rng.finditer(line):
             try:
-                for year in (today.year, today.year - 1):
-                    d = date(year, int(m.group(2)), int(m.group(1)))
-                    if d <= today + timedelta(days=60):
+                month = int(m.group(2) or m.group(3))
+                for year in (today.year, today.year - 1, today.year + 1):
+                    d = date(year, month, int(m.group(1)))
+                    if today - timedelta(days=200) <= d <= today + timedelta(days=90):
                         out.add(d - timedelta(days=d.weekday()))
                         break
             except ValueError:

@@ -201,7 +201,7 @@ no reference point.)
 🟢/🟡/🔴 Strength frequency:      [sessions/week vs. prescription]
 🟢/🟡/🔴 Hill exposure (D+):       [D+ last 4 weeks vs. the target the phase actually states (weekly or monthly); trend]
 🟢/🟡/🔴 Hill exposure (sessions): [count sessions ≥200 m gain last 4 weeks]
-🟢/🟡/🔴 Polarization:            [grey-zone sessions last 4 weeks (avg HR 138–148, proxy)]
+🟢/🟡/🔴 Polarization:            [grey-zone sessions last 4 weeks (avg-HR proxy, band as printed on the script's Config line)]
 🟢/🟡/🔴 Night sessions:          [count last 8 weeks; race start time]
 🟢/🟡/🔴 Back-to-back weekends:   [count last 4 weeks; phase threshold]
 🟢/🟡/🔴 Key milestones:          [bullet list of named milestones with status]

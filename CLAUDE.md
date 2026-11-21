@@ -28,6 +28,7 @@ Each skill lives in its own subfolder as `skill-name/SKILL.md`. Before starting 
 | `coach-monthly-summary/SKILL.md` | User asks for a monthly training summary or multi-month comparison |
 | `garmin-activity-tagger/SKILL.md` | Classifying or tagging a specific activity by type/purpose |
 | `program-health-check/SKILL.md` | User asks if training is on track, program audit, phase progress ("is my program on track?", "program status") |
+| `training-program/SKILL.md` | Creating, revising or reviewing the multi-week training program (`training-program.md`): goals, blocks, volume targets, tests, checkpoint ("make a program", "is the program still sensible?"). Not for week plans (`training-plan`) or status reports (`program-health-check`). |
 | `quick-lookup/SKILL.md` | Factual data lookups from local files — km last week, race start time, cutoffs, drop bag contents, phase dates |
 | `training-plan/SKILL.md` | Creating or updating a training plan, pushing workouts to Garmin |
 | `garmin-mcp/SKILL.md` | **Reference only** — read before making Garmin MCP calls. Maps use cases to tools, documents response shapes, lists known quirks. Not a workflow skill. |
